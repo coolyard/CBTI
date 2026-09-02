@@ -1,0 +1,60 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    name: Release Please
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v4
+        id: release
+        with:
+          release-type: node
+          target-branch: main
+          config-file: .github/release-please-config.json
+
+  publish-artifacts:
+    name: Publish H5 and Mini Program Artifacts
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.release-please.outputs.tag_name }}
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '11.24.0'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build:h5
+      - run: pnpm build:mp-weixin
+      - name: Package release assets
+        run: |
+          mkdir -p release-artifacts
+          (cd dist/build/h5 && zip -qr "$GITHUB_WORKSPACE/release-artifacts/cbti-h5.zip" .)
+          (cd dist/build/mp-weixin && zip -qr "$GITHUB_WORKSPACE/release-artifacts/cbti-mp-weixin.zip" .)
+          ls -lh release-artifacts
+      - name: Upload release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ needs.release-please.outputs.tag_name }}" \
+            release-artifacts/cbti-h5.zip \
+            release-artifacts/cbti-mp-weixin.zip \
+            --clobber

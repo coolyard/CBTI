@@ -1,22 +1,24 @@
 name: CI
 
 on:
+  pull_request:
   push:
     branches: [main]
-  pull_request:
 
-# 规范详见 specs/91-ci.md
 jobs:
-  verify:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
+        with:
+          version: '11.24.0'
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
@@ -24,6 +26,6 @@ jobs:
       - run: pnpm build:mp-weixin
       - uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: cbti-dist
           path: dist/
           retention-days: 7
