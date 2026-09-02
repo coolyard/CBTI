@@ -1,0 +1,49 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": { "navigationBarTitleText": "CBTI 角色人格指标", "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/quiz/index",
+      "style": { "navigationBarTitleText": "CBTI 测试", "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/loading/index",
+      "style": { "navigationBarTitleText": "灵魂扫描中", "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/result/index",
+      "style": { "navigationBarTitleText": "你的灵魂角色", "navigationStyle": "custom" }
+    },
+    {
+      "path": "pages/poster/index",
+      "style": { "navigationBarTitleText": "分享海报", "navigationStyle": "custom" }
+    }
+  ],
+  "subPackages": [
+    {
+      "root": "pkg-characters",
+      "pages": [
+        {
+          "path": "pages/placeholder/index",
+          "style": { "navigationBarTitleText": "立绘资源包" }
+        }
+      ]
+    },
+    {
+      "root": "pkg-heads",
+      "pages": [
+        {
+          "path": "pages/placeholder/index",
+          "style": { "navigationBarTitleText": "头部立绘资源包" }
+        }
+      ]
+    }
+  ],
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarBackgroundColor": "#FFF6E5",
+    "backgroundColor": "#FFF6E5"
+  }
+}

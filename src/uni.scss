@@ -1,0 +1,18 @@
+/**
+ * 设计令牌桥接（唯一来源 specs/40-design-system.md，与 uno.config.ts 逐字同步）
+ * 在 SCSS/原生 CSS 场景通过 var(--cbti-*) 使用
+ */
+/* prettier-ignore */
+:root {
+  --cbti-ink: #1A1A2E;
+  --cbti-paper: #FFF6E5;
+  --cbti-primary: #7C4DFF;
+  --cbti-accent: #FFC224;
+  --cbti-pink: #FF5C8A;
+  --cbti-mint: #3ED6A5;
+  --cbti-white: #FFFFFF;
+  --cbti-card-1: #B3E5FF;
+  --cbti-card-2: #FFD1DC;
+  --cbti-card-3: #D9F7C4;
+  --cbti-card-4: #FFE8A3;
+}

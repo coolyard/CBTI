@@ -1,0 +1,11 @@
+# CBTI · Cursor 规则（与 AGENTS.md 同源，保持精简）
+
+- 本仓库为 Spec-Driven：动手前读 AGENTS.md 与任务卡指定的 specs/ 文件；spec 是唯一真实源
+- 技术栈：UniApp + Vue3 `<script setup>` + TypeScript strict + Pinia + UnoCSS + Zod；pnpm 包管理
+- 业务逻辑只允许写在 src/core/ 纯函数中；页面/组件只做渲染与交互
+- 数据改动必须过 src/data/schemas.ts 的 Zod 校验；题库以「你」开头题干、选项恰好覆盖 L/M1/M2/H
+- 禁止引入 specs/10 未批准的依赖；禁止 ECharts / html2canvas / 成品 UI 组件库
+- 禁止 any、禁止空 catch、禁止在 UI 渲染 seedTag/designNote 等题库元信息
+- 视觉遵循 specs/40（灵魂漫研所贴纸风）：粗描边、硬阴影、高饱和、回弹动效，禁毛玻璃/渐变
+- 完成定义：pnpm lint && pnpm typecheck && pnpm test 全绿 + 任务卡验收自查
+- 测试约定：Vitest 独立配置（vitest.config.ts 不加载 uni 插件），用例编号对应 specs/30 §7

@@ -1,0 +1,17 @@
+{
+  "name": "CBTI",
+  "appid": "",
+  "description": "测测你的灵魂被哪个角色附体了",
+  "versionName": "0.1.0",
+  "versionCode": 1,
+  "transformPx": false,
+  "h5": {
+    "router": { "mode": "hash" },
+    "title": "CBTI · 角色人格指标"
+  },
+  "mp-weixin": {
+    "appid": "",
+    "setting": { "urlCheck": false, "minified": true },
+    "lazyCodeLoading": "requiredComponents"
+  }
+}

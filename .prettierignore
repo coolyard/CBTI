@@ -1,0 +1,6 @@
+dist/
+node_modules/
+unpackage/
+pnpm-lock.yaml
+src/static/
+*.md

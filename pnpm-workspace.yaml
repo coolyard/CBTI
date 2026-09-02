@@ -1,0 +1,12 @@
+# uni-app 编译器存在根路径解析依赖（如 @dcloudio/uni-components、pinia 的 nostics），
+# pnpm 默认隔离布局不满足，故将依赖提升到根 node_modules（specs/10 §1 注记）
+publicHoistPattern:
+  - '*'
+
+allowBuilds:
+  '@parcel/watcher': true
+  core-js: true
+  core-js-pure: true
+  esbuild: true
+minimumReleaseAgeExclude:
+  - zod@4.5.4

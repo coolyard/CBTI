@@ -1,0 +1,50 @@
+{
+  "name": "cbti",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.24.0",
+  "engines": {
+    "node": ">=22.13.0",
+    "npm": ">=11.24.0"
+  },
+  "description": "CBTI 角色人格指标 —— 测测你的灵魂被哪个角色附体了（H5 + 微信小程序）",
+  "scripts": {
+    "dev": "uni",
+    "dev:h5": "uni",
+    "dev:mp-weixin": "uni -p mp-weixin",
+    "build:h5": "uni build",
+    "build:mp-weixin": "uni build -p mp-weixin",
+    "test": "vitest run",
+    "typecheck": "vue-tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-5020520260824002",
+    "@dcloudio/uni-components": "3.0.0-alpha-5020520260824002",
+    "@dcloudio/uni-h5": "3.0.0-alpha-5020520260824002",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-5020520260824002",
+    "pinia": "^4.0.3",
+    "vue": "^3.5.42",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@dcloudio/types": "3.4.31",
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-5020520260824002",
+    "@types/node": "^24.0.0",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.9.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-vue": "^10.10.0",
+    "prettier": "^3.8.1",
+    "sass": "^1.103.1",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.68.0",
+    "unocss": "^66.8.1",
+    "vite": "5.2.8",
+    "vitest": "^3.2.4",
+    "vue-tsc": "^2.2.12"
+  }
+}
