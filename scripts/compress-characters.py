@@ -4,9 +4,9 @@
 用法：python3 scripts/compress-characters.py
 输入：raw-portraits/{archetypeId}-{m|f|u}-{角色名}.png（豆包/即梦原图）
 处理：中心裁方 → 640×640 → WebP（质量自降直至 单张 ≤200KB 且 总量 ≤预算）→ 规范命名
-输出：src/pkg-characters/characters/char-{原型两位补零}-{male|female}.webp
+输出：src/pkg-characters/characters/char-{原型两位补零}-{male|female}.webp（H5 640 母版）
 
-规范来源：specs/70-assets.md §5（资产规格 + 命名 + 640 尺寸与水印注记）、specs/80 §3（单分包 2MB 限制）
+规范来源：specs/70-assets.md §5（资产规格 + 命名 + 640 尺寸与水印注记）
 """
 import io
 import re
@@ -19,7 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'raw-portraits'
 DST = ROOT / 'src' / 'pkg-characters' / 'characters'
 MAX_BYTES = 200 * 1024          # 单张上限（specs/70 §5）
-TOTAL_BUDGET = 1900 * 1024      # 54 张总量预算：微信单分包 2MB 硬限制，预留 ~150KB 余量（specs/80 §3）
+TOTAL_BUDGET = 1900 * 1024      # 640 母版总量预算，避免 H5 体积失控
 TARGET = 640
 SUFFIX_MAP = {'m': 'male', 'f': 'female'}
 QUALITY_LADDER = (85, 80, 75, 70, 65, 60, 55, 50)
@@ -82,7 +82,7 @@ def main() -> int:
             print(f'  - {e}')
         return 1
 
-    # 两阶段：先在内存中按质量档试编码，找到满足「单张 ≤200KB 且 54 张总量 ≤预算」的最高档，再一次落盘
+    # 两阶段：先在内存中按质量档试编码，找到满足「单张 ≤200KB 且总量 ≤预算」的最高档，再一次落盘
     chosen: tuple[int, list[tuple[str, bytes, int]]] | None = None
     for quality in QUALITY_LADDER:
         encoded: list[tuple[str, bytes, int]] = []
@@ -107,7 +107,7 @@ def main() -> int:
         print(f'  {out_name}  {size / 1024:.0f}KB{flag}')
     total = sum(size for _, _, size in encoded)
     print(f'\n总计 {total / 1024:.0f}KB（{total / 1024 / 1024:.2f}MB），预算 {TOTAL_BUDGET // 1024}KB')
-    print('全部通过：54/54，命名规范，单张 ≤200KB，总量在单分包预算内')
+    print(f'全部通过：{len(id_name)}/{len(id_name)}，命名规范，单张 ≤200KB，640 母版预算内')
     return 0
 
 

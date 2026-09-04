@@ -18,6 +18,7 @@ import { drawPoster, type PosterAssets } from '../../components/poster/draw-post
 import { useQuizStore } from '../../stores/quiz'
 import { characterPortraitPath } from '../../utils/character-asset'
 import { loadCanvasImage } from '../../utils/canvas-image'
+import { logImageEnvironment, reportImageError } from '../../utils/image-diagnostic'
 import { downloadH5PosterPng } from '../../utils/poster-export'
 import { getSafeAreaTopStyle } from '../../utils/safe-area'
 
@@ -39,6 +40,7 @@ let canvasNode: PosterCanvasNode | null = null
 let context: CanvasRenderingContext2D | null = null
 
 onLoad(() => {
+  logImageEnvironment()
   quiz.restore()
   if (!quiz.result && quiz.isComplete) {
     quiz.finalize()
@@ -102,6 +104,14 @@ async function loadPosterAssets(canvas: PosterCanvasNode): Promise<PosterAssets>
   const qrCode = await loadCanvasImage(QR_CODE_SRC, canvas)
   const main = result.value?.main
   const portrait = main ? await loadCanvasImage(characterPortraitPath(main.id), canvas) : null
+  if (!qrCode) {
+    reportImageError('poster-qr', { detail: { errMsg: 'canvas image load returned null' } })
+  }
+  if (!portrait && main) {
+    reportImageError(`poster-portrait-${main.id}`, {
+      detail: { errMsg: 'canvas image load returned null' }
+    })
+  }
   return { portrait, qrCode }
 }
 

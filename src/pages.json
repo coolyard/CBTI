@@ -21,26 +21,6 @@
       "style": { "navigationBarTitleText": "分享海报", "navigationStyle": "custom" }
     }
   ],
-  "subPackages": [
-    {
-      "root": "pkg-characters",
-      "pages": [
-        {
-          "path": "pages/placeholder/index",
-          "style": { "navigationBarTitleText": "立绘资源包" }
-        }
-      ]
-    },
-    {
-      "root": "pkg-heads",
-      "pages": [
-        {
-          "path": "pages/placeholder/index",
-          "style": { "navigationBarTitleText": "头部立绘资源包" }
-        }
-      ]
-    }
-  ],
   "globalStyle": {
     "navigationBarTextStyle": "black",
     "navigationBarBackgroundColor": "#FFF6E5",

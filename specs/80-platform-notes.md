@@ -24,16 +24,17 @@
 | 项 | 预算 |
 |----|------|
 | 主包 | ≤ 2MB（微信硬限制） |
-| 单分包 | ≤ 2MB（微信硬限制）——54 张立绘入同一分包，故立绘总量须 < 2MB：1024×1024 实测约 3.9MB 超限，定稿 640×640 @ q=80（实测 1874KB ≈ 1.83MB，见 specs/70 §5 注 1） |
-| 立绘 54 张 × ≤200KB | 超主包预算 → 放分包 `pkg-characters/` 或 CDN |
-| 决策 | MVP 默认**分包**（无 CDN 成本）；分包预下载规则：进入加载页时预下载 |
+| MP 主包立绘 | `src/static/characters/` 448 JPG（q70），56 张实测约 1.45MB；不再创建 pkg-characters/pkg-heads 子包 |
+| H5 母版 | `src/pkg-characters/characters/` 640 WebP，仅 H5 构建/开发服务使用 |
+| 决策 | MP 真机资源必须进主包；本地图片使用 JPG/PNG，避免 iOS 真机 WebP `getLocalImgData` 失败 |
 
 ## 4. 静态资源清单
 
 | 资源 | 路径 | 状态 |
 |------|------|------|
 | 小程序码占位图 | `src/static/mp-code.png` | MVP 占位，发布前替换真实静态码 |
-| 立绘 | `src/static/characters/` 或分包 | 内容管线产出 |
+| MP 主包立绘 | `src/static/characters/` | 448 JPG，56 张 |
+| H5 立绘母版 | `src/pkg-characters/characters/` | 640 WebP，56 张 |
 
 ## 5. 发布检查单
 

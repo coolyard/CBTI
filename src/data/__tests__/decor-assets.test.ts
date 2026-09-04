@@ -9,10 +9,10 @@ describe('背景装饰贴纸资产清单', () => {
     let totalSize = 0
 
     for (const name of DECOR_NAMES) {
-      const filePath = resolve(process.cwd(), 'src/static/decor', `decor-${name}.webp`)
-      expect(existsSync(filePath), `缺少 decor-${name}.webp`).toBe(true)
+      const filePath = resolve(process.cwd(), 'src/static/decor', `decor-${name}.png`)
+      expect(existsSync(filePath), `缺少 decor-${name}.png`).toBe(true)
       const size = statSync(filePath).size
-      expect(size, `decor-${name}.webp 超 60KB`).toBeLessThanOrEqual(60 * 1024)
+      expect(size, `decor-${name}.png 超 60KB`).toBeLessThanOrEqual(60 * 1024)
       totalSize += size
     }
 

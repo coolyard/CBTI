@@ -62,3 +62,10 @@
 
 UniApp（Vue3 + Vite 5.2.8）+ TypeScript strict + Pinia + UnoCSS + Zod + Vitest + pnpm。
 版本纪律与完整命令见 specs/10 §1/§5。
+
+## 6. 立绘资产策略
+
+- MP 主包：`src/static/characters/` 存放 448×448 JPG（q70），微信真机只允许引用主包资源，且本地图不使用 WebP（iOS 真机 `getLocalImgData` 失败）。
+- H5 母版：`src/pkg-characters/characters/` 保留 640×640 WebP，作为 H5 高清资源；`vite.config.ts` 只向 H5 产物拷贝，不进入 MP。
+- 路径分流：`src/utils/character-asset.ts` 用条件编译返回 `/static/characters/*.jpg`（MP）或 `/pkg-characters/characters/*.webp`（H5）。
+- 圆形头像：不再生成 `pkg-heads` 头图；结果页灵魂近亲使用整立绘 + `src/utils/head-crop.ts` 的 CSS 裁切，裁切参数与历史脚本同源。
