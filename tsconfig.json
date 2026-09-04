@@ -5,9 +5,8 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "types": ["@dcloudio/types"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     },
     "module": "ESNext",
     "moduleResolution": "bundler",

@@ -62,10 +62,10 @@
 |----|------|
 | 尺寸 | 640×640（1:1） |
 | 格式 | WebP，单张 ≤ 200KB |
-| 命名 | `char-{id}-{gender}.webp`，如 `char-01-male.webp`；通用角色 `char-27-universal.webp` |
+| 命名 | `char-{id}-{gender}.webp`，如 `char-01-male.webp`；隐藏角色按池命名：`char-27-male.webp`、`char-29-female.webp` |
 | 存放 | 唯一存放 `src/pkg-characters/characters/`：MP 走分包；H5 build 由 vite `copyPkgAssets` 插件拷入产物，H5 dev 由 vite dev 中间件服务。**禁止放 `src/static/`**（会被 MP 打进主包，挤爆主包 2MB 预算） |
 | 缺失降级 | 首字符圆形占位图（轮换底色，specs/40 §2） |
-| 头部立绘（圆形头像框专用） | 独立分包 `src/pkg-heads/heads/`；320×320 WebP，单张 ≤60KB、总量 ≤800KB；命名 `head-{原型两位补零}-{male|female|universal}.webp`；由 `scripts/make-headshots.py` 从 640 立绘裁切（`CROP_SIDE=0.60`、`CROP_TOP=0.02`），裁切参数变更需重跑脚本 |
+| 头部立绘（圆形头像框专用） | 独立分包 `src/pkg-heads/heads/`；320×320 WebP，单张 ≤60KB、总量 ≤800KB；命名 `head-{原型两位补零}-{male|female}.webp`；由 `scripts/make-headshots.py` 从 640 立绘裁切（`CROP_SIDE=0.60`、`CROP_TOP=0.02`），裁切参数变更需重跑脚本 |
 | 装饰贴纸（可选 AI 增强包） | `src/static/decor/`，透明底 WebP 320×320 ≤60KB，总量 ≤300KB；默认用 CSS/emoji 装饰（specs/45 §8），贴纸包就绪后替换 |
 
 > 注 1（为何是 640）：微信单分包上限 2MB（specs/80 §3），54 张 1024×1024 WebP 实测总计约 3.9MB 超限；640×640 在 q=80 下实测 1874KB（1.83MB）可整体入单分包（压缩脚本内置总量预算 1900KB，质量自动降档兜底）。使用侧最大渲染需求为海报立绘圆（半径 110px，3x 屏等效 660px），640 刚好覆盖。

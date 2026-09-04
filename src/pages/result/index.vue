@@ -13,11 +13,15 @@
       />
       <view class="card-sticker identity__portrait-card">
         <image
-          v-if="mainId"
+          v-if="mainId && !mainPortraitError"
           class="identity__portrait-image"
           :src="characterPortraitPath(mainId)"
           mode="aspectFit"
+          @error="handleMainPortraitError"
         />
+        <view v-else class="identity__portrait-placeholder" :class="homePlaceholderClass(0)">
+          <text class="identity__portrait-placeholder-text">{{ mainName.charAt(0) }}</text>
+        </view>
       </view>
       <text class="identity__archetype">{{ archetype }}</text>
       <text class="identity__name font-display-cbti">{{ mainName }}</text>
@@ -127,7 +131,7 @@
           {{ switchLabel }}
         </view>
       </view>
-      <text v-if="result?.easterLocked" class="actions__hint">隐藏角色不分性别</text>
+      <text v-if="result?.easterLocked" class="actions__hint">隐藏角色锁定，不可切换对照池</text>
     </view>
 
     <!-- #ifdef H5 -->
@@ -156,7 +160,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { onLoad, onShareAppMessage } from '@dcloudio/uni-app'
 import BackgroundDecor from '../../components/background/BackgroundDecor.vue'
 import RadarChart from '../../components/radar/RadarChart.vue'
@@ -186,6 +190,14 @@ const resultTheme = computed(() =>
 )
 const relativeModalOpen = ref(false)
 const portraitErrors = ref<Record<string, boolean>>({})
+const mainPortraitError = ref(false)
+
+watch(
+  () => result.value?.main.id,
+  () => {
+    mainPortraitError.value = false
+  }
+)
 
 const mainName = computed(() => result.value?.main.name ?? '待揭晓')
 const mainId = computed(() => result.value?.main.id ?? '')
@@ -217,7 +229,7 @@ const scoreRows = computed(() =>
 const firstSentence = computed(() => splitFirstSentence(interpretations.value[0] ?? ''))
 
 const canSwitchPool = computed(() => Boolean(result.value && !result.value.easterLocked))
-const switchLabel = computed(() => (quiz.switchedPool ? '切回原版' : '切换性别版'))
+const switchLabel = computed(() => (quiz.switchedPool ? '切回原版' : '切换对照池'))
 
 onLoad(() => {
   quiz.restore()
@@ -261,6 +273,10 @@ function closeRelativeModal(): void {
 
 function handlePortraitError(id: string): void {
   portraitErrors.value[id] = true
+}
+
+function handleMainPortraitError(): void {
+  mainPortraitError.value = true
 }
 
 async function handleCopyShare(): Promise<void> {
@@ -342,6 +358,19 @@ async function handleCopyShare(): Promise<void> {
 .identity__portrait-image {
   width: 100%;
   height: 100%;
+}
+
+.identity__portrait-placeholder {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+}
+
+.identity__portrait-placeholder-text {
+  font-size: 120rpx;
+  font-weight: 900;
 }
 
 .identity__archetype {

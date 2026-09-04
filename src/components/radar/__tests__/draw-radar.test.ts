@@ -25,6 +25,13 @@ function createFakeContext(): CanvasRenderingContext2D {
   return context as unknown as CanvasRenderingContext2D
 }
 
+function boxesOverlap(
+  a: { x: number; y: number; width: number; height: number },
+  b: { x: number; y: number; width: number; height: number }
+): boolean {
+  return a.x < b.x + b.width && a.x + a.width > b.x && a.y < b.y + b.height && a.y + a.height > b.y
+}
+
 describe('drawRadar 纯函数', () => {
   it('合法数据完整绘制不抛错', () => {
     const ctx = createFakeContext()
@@ -97,5 +104,24 @@ describe('drawRadar 纯函数', () => {
     expect(legend.box.y).toBeGreaterThanOrEqual(0)
     expect(legend.box.x + legend.box.width).toBeLessThanOrEqual(size)
     expect(legend.box.y + legend.box.height).toBeLessThanOrEqual(size)
+  })
+
+  it('330px 画布：radius ≥120、labelFontSize ≤16、标签与图例不重叠', () => {
+    const size = 330
+    const measureText = (text: string, fontSize: number) =>
+      Array.from(text).length * fontSize * 0.55
+    const labels = Array.from({ length: 5 }, () => '锋芒度 10.0')
+    const layout = computeRadarLayout(size, labels, '高启强', measureText)
+    const legend = layout.legend as NonNullable<typeof layout.legend>
+
+    expect(layout.radius).toBeGreaterThanOrEqual(120)
+    expect(layout.labelFontSize).toBeLessThanOrEqual(16)
+    for (const label of layout.labels) {
+      expect(label.box.x).toBeGreaterThanOrEqual(0)
+      expect(label.box.y).toBeGreaterThanOrEqual(0)
+      expect(label.box.x + label.box.width).toBeLessThanOrEqual(size)
+      expect(label.box.y + label.box.height).toBeLessThanOrEqual(size)
+      expect(boxesOverlap(label.box, legend.box)).toBe(false)
+    }
   })
 })

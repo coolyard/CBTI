@@ -25,12 +25,13 @@
                 │                          （纯绘制函数与宿主组件分离）
                 ▼                                  │
         ┌──────────── core（纯函数）───────────────▼────────────┐
-        │  scoring 计分 → matcher 曼哈顿匹配 → easter 彩蛋锁定    │
+        │  scoring 计分阈值 → matcher LUT/近亲 → easter 彩蛋锁定  │
         │  engine.computeResult 编排                              │
         └──────────────────────▲────────────────────────────────┘
                                │
         ┌──────────────────────┴────────────────────────────────┐
-        │  data：questions.male / questions.female / characters   │
+        │  data：theme-split + category/{xiuxian..dushi} + LUT     │
+        │  + characters + index.ts 顶层 Zod 校验                   │
         │  index.ts 顶层 Zod 校验，非法数据启动即崩                │
         └─────────────────────────────────────────────────────────┘
 ```

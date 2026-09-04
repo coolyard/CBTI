@@ -5,8 +5,10 @@ import { characters } from '../index'
 import { characterHeadFileName, characterPortraitFileName } from '../../utils/character-asset'
 
 describe('立绘资产清单', () => {
-  it('54 个角色立绘存在且单张 ≤200KB', () => {
-    const validCharacters = characters.filter((character) => character.archetypeId !== 29)
+  it('54 张在库立绘存在且单张 ≤200KB', () => {
+    const validCharacters = characters.filter(
+      (character) => character.archetypeId !== 29 && character.archetypeId !== 30
+    )
     expect(validCharacters).toHaveLength(54)
 
     for (const character of validCharacters) {
@@ -20,8 +22,10 @@ describe('立绘资产清单', () => {
     }
   })
 
-  it('54 个角色头部立绘存在且单张 ≤60KB、总量 ≤800KB', () => {
-    const validCharacters = characters.filter((character) => character.archetypeId !== 29)
+  it('54 张在库头部立绘存在且单张 ≤60KB、总量 ≤800KB', () => {
+    const validCharacters = characters.filter(
+      (character) => character.archetypeId !== 29 && character.archetypeId !== 30
+    )
     expect(validCharacters).toHaveLength(54)
 
     let totalBytes = 0
