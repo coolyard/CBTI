@@ -1,16 +1,9 @@
 /**
- * 计分规则（规范：specs/30-scoring-algorithm.md §2）
+ * 计分规则（规范：specs/30-scoring-algorithm.md §2–§3）
  * 纯函数，禁止引入 vue / uni API。
  */
-import type { FinalBand, OptionBand } from '../types'
-
-/** 选项档位固定分值（落在 PRD 区间内：L 1-2 / M1 3-4 / M2 5-6 / H 8-10） */
-export const OPTION_SCORE: Record<OptionBand, number> = {
-  L: 2,
-  M1: 4,
-  M2: 6,
-  H: 9
-}
+import { DIM_TOTAL_MAX, DIM_TOTAL_MIN, DIMENSION_THRESHOLDS } from '../data/match-lut'
+import type { Dimension, FinalBand } from '../types'
 
 /** 档位数值化（曼哈顿距离用） */
 export const BAND_CODE: Record<FinalBand, number> = {
@@ -26,25 +19,22 @@ export const CHARACTER_ANCHOR: Record<FinalBand, number> = {
   H: 9
 }
 
-/** M1/M2 归并为 M */
-export function bandToFinal(band: OptionBand): FinalBand {
-  return band === 'M1' || band === 'M2' ? 'M' : band
+/** 维度原始总分 → 最终档位（分维阈值见 specs/30 §3） */
+export function bandFromTotal(total: number, dimension: Dimension): FinalBand {
+  const { lowMax, highMin } = DIMENSION_THRESHOLDS[dimension]
+  if (total <= lowMax) return 'L'
+  if (total >= highMin) return 'H'
+  return 'M'
 }
 
-/** 维度均分 → 最终档位：avg < 3.5 → L；3.5 ≤ avg < 6.5 → M；avg ≥ 6.5 → H */
-export function bandOf(avg: number): FinalBand {
-  if (avg < 3.5) return 'L'
-  if (avg < 6.5) return 'M'
-  return 'H'
+/** 维度原始总分 → 雷达图用户线 1.0–10.0 */
+export function normalizeDimensionScore(total: number, dimension: Dimension): number {
+  const min = DIM_TOTAL_MIN[dimension]
+  const max = DIM_TOTAL_MAX[dimension]
+  return Math.round((1 + ((total - min) / (max - min)) * 9) * 100) / 100
 }
 
-/** 维度得分（3 题均值，保留 2 位小数，雷达图用户线直接使用） */
-export function averageScore(scores: number[]): number {
-  const avg = scores.reduce((sum, s) => sum + s, 0) / scores.length
-  return Math.round(avg * 100) / 100
-}
-
-/** 五维 FinalBand 数组 → 模式串（顺序固定为 DIMENSIONS，见 specs/00 §2） */
+/** 五维 FinalBand 数组 → 模式串（顺序固定为 DIMENSIONS） */
 export function patternFromBands(bands: FinalBand[]): string {
   return bands.join('-')
 }

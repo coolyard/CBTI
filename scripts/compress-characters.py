@@ -4,7 +4,7 @@
 用法：python3 scripts/compress-characters.py
 输入：raw-portraits/{archetypeId}-{m|f|u}-{角色名}.png（豆包/即梦原图）
 处理：中心裁方 → 640×640 → WebP（质量自降直至 单张 ≤200KB 且 总量 ≤预算）→ 规范命名
-输出：src/pkg-characters/characters/char-{原型两位补零}-{male|female|universal}.webp
+输出：src/pkg-characters/characters/char-{原型两位补零}-{male|female}.webp
 
 规范来源：specs/70-assets.md §5（资产规格 + 命名 + 640 尺寸与水印注记）、specs/80 §3（单分包 2MB 限制）
 """
@@ -21,7 +21,7 @@ DST = ROOT / 'src' / 'pkg-characters' / 'characters'
 MAX_BYTES = 200 * 1024          # 单张上限（specs/70 §5）
 TOTAL_BUDGET = 1900 * 1024      # 54 张总量预算：微信单分包 2MB 硬限制，预留 ~150KB 余量（specs/80 §3）
 TARGET = 640
-SUFFIX_MAP = {'m': 'male', 'f': 'female', 'u': 'universal'}
+SUFFIX_MAP = {'m': 'male', 'f': 'female'}
 QUALITY_LADDER = (85, 80, 75, 70, 65, 60, 55, 50)
 
 
@@ -47,7 +47,7 @@ def main() -> int:
     covered: set[str] = set()
 
     for f in sorted(SRC.iterdir()):
-        m = re.match(r'(\d+)-([mfu])-(.+)\.(png|jpg|jpeg|webp)$', f.name, re.I)
+        m = re.match(r'(\d+)-([mf])-(.+)\.(png|jpg|jpeg|webp)$', f.name, re.I)
         if not m:
             errors.append(f'文件名不合法（期望 {{id}}-{{m|f|u}}-{{角色名}}.png）：{f.name}')
             continue

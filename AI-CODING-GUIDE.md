@@ -16,7 +16,7 @@
 
 ## 2. 派活 Prompt 模板（人类复制即用）
 
-逐条可直接发送的指令集已沉淀在 [tasks/codex-prompts.md](tasks/codex-prompts.md)（含 P0 环境体检 + T06–T14 逐任务指令，每条内置质量门禁）；视觉润色批次见 [tasks/codex-prompts-polish.md](tasks/codex-prompts-polish.md)（P01–P10，对应 specs/45）。通用模板：
+逐条可直接发送的指令集已沉淀在 [tasks/codex-prompts.md](tasks/codex-prompts.md)（含 v3→v4 迁移 T16–T20 与总验收，每条内置质量门禁）；视觉润色批次见 [tasks/codex-prompts-polish.md](tasks/codex-prompts-polish.md)（P01–P13，对应 specs/45）。通用模板：
 
 ```
 你在 CBTI 仓库工作。先读 AGENTS.md，然后完成任务 {TASK_ID}。
@@ -37,8 +37,8 @@
 | vitest 与 uni 插件 | 测试不需要 uni 运行时 | 用独立 `vitest.config.ts`，不加载 uni 插件 |
 | pnpm 隔离布局 | uni 编译器按根路径解析 `@dcloudio/uni-components`、pinia 找不到 `nostics` | `pnpm-workspace.yaml` 设 `publicHoistPattern: ['*']`（已配置）；构建脚本白名单 `allowBuilds` 改动需确认安全 |
 | pnpm 供应链门禁 | pnpm 11 默认拦截依赖构建脚本与新发布版本 | `allowBuilds` / `minimumReleaseAgeExclude` 已在 workspace 文件登记，新增依赖报错时先查这里 |
-| 题库风格规则 | 题干必须以「你」开头，但源 MD 有 7 处违规 | Zod 启动校验会抓到——这正是校验存在的意义 |
-| 角色库条数 | 28 是**原型数**，角色库恰好 54 条（26 组男女双版 52 + 2 通用隐藏） | 见 specs/20 §2 |
+| 题库事实源 | v4.0 以 `CBTI_test_questions_categorized.md` 为准 | 改题先改 MD，再跑 `scripts/build-match-table.py --emit-ts`；禁止手写 `src/data/category/*.ts` |
+| 角色库条数 | 角色库 56 条 = 26 原型男女双版 52 + 4 归池隐藏角色 | #27/#28 为 male、#29/#30 为 female；见 specs/20 §2 |
 
 ## 4. 生成代码的口味
 

@@ -15,6 +15,7 @@ import { drawPoster, type PosterAssets } from '../../components/poster/draw-post
 import { useQuizStore } from '../../stores/quiz'
 import { characterPortraitPath } from '../../utils/character-asset'
 import { loadCanvasImage } from '../../utils/canvas-image'
+import { downloadH5PosterPng } from '../../utils/poster-export'
 
 const QR_CODE_SRC = '/static/mp-code.png'
 const canvasId = 'poster-canvas'
@@ -105,18 +106,19 @@ function exportPoster(): void {
     return
   }
 
+  // #ifdef H5
   if (typeof canvasNode.toDataURL === 'function') {
     const dataUrl = canvasNode.toDataURL('image/png')
-    const link = document.createElement('a')
-    link.href = dataUrl
-    link.download = 'cbti-poster.png'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    uni.showToast({ title: '海报已生成', icon: 'success' })
+    const downloaded = downloadH5PosterPng(dataUrl, 'cbti-poster.png')
+    uni.showToast({
+      title: downloaded ? '海报已生成' : '海报生成失败，再试一次嘛',
+      icon: downloaded ? 'success' : 'none'
+    })
     return
   }
+  // #endif
 
+  // #ifdef MP-WEIXIN
   const options = {
     canvasId,
     canvas: canvasNode,
@@ -128,6 +130,7 @@ function exportPoster(): void {
     }
   } as unknown as UniNamespace.CanvasToTempFilePathOptions
   uni.canvasToTempFilePath(options)
+  // #endif
 }
 
 function saveToAlbum(filePath: string): void {

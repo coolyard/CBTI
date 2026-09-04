@@ -1,8 +1,8 @@
 /**
- * 28 组灵魂原型角色库（共 54 条：26 原型 × 男女 + 2 通用隐藏）
+ * 30 组灵魂原型角色库（共 56 条：26 原型 × 男女 + 4 性别归池隐藏角色）
  * 模式串与 PRD.md §四/§十 逐字对应（specs/20 §4.4）
  *
- * id 规则：`{原型编号}-{性别后缀}`，m=male / f=female / u=universal
+ * id 规则：`{原型编号}-{性别后缀}`，m=male / f=female
  *
  * 内容字段状态：
  * - quote：已按 PRD「核心梗」预填（内容管线 C01 负责润色定稿）
@@ -398,7 +398,7 @@ export const rawCharacters: Character[] = [
     name: '李白',
     gender: 'male',
     source: '历史',
-    pattern: 'H-L-M-L-H',
+    pattern: 'M-L-M-L-H',
     quote: '天生我材必有用，千金散尽还复来。',
     quoteExtra: '长风破浪会有时。',
     brief: '酒入豪肠的诗仙，浪漫得不像活在人间。',
@@ -524,7 +524,7 @@ export const rawCharacters: Character[] = [
     name: '宇智波鼬',
     gender: 'male',
     source: '火影',
-    pattern: 'L-H-M-H-L',
+    pattern: 'L-H-M-H-M',
     quote: '原谅我，佐助，这是最后一次了。',
     quoteExtra: '你太弱了，是因为还不够恨我。',
     brief: '把温柔藏进残忍里的哥哥，独自背负一切。',
@@ -545,7 +545,7 @@ export const rawCharacters: Character[] = [
     name: '蜡笔小新',
     gender: 'male',
     source: '蜡笔小新',
-    pattern: 'H-L-M-L-H',
+    pattern: 'H-M-M-L-H',
     quote: '大象～大象～你的鼻子怎么那么长～',
     quoteExtra: '美冴，我要吃小熊饼干。',
     brief: '五岁社牛儿童，一开口就是成年人的尴尬。',
@@ -966,7 +966,7 @@ export const rawCharacters: Character[] = [
     name: '武则天',
     gender: 'female',
     source: '历史',
-    pattern: 'H-H-M-L-H',
+    pattern: 'H-H-M-M-H',
     quote: '朕，是唯一的女皇帝。',
     quoteExtra: '功过是非，留待后人评说。',
     brief: '唯一的女帝，用一生证明女子也能坐江山。',
@@ -1071,7 +1071,7 @@ export const rawCharacters: Character[] = [
     name: '灰原哀',
     gender: 'female',
     source: '名侦探柯南',
-    pattern: 'L-H-L-H-M',
+    pattern: 'M-H-L-H-M',
     quote: '我叫灰原哀，请多指教。',
     quoteExtra: '组织的事，我一个人扛。',
     brief: '冷静傲娇的科学家，把脆弱藏进毒舌里。',
@@ -1107,13 +1107,13 @@ export const rawCharacters: Character[] = [
       'TA是急诊科医生，连续值夜班还能笑着吃泡面。但TA的心眼子约等于零：被推销办卡时以为对方真的为TA好，回家才反应过来。'
   },
 
-  // ---------- 通用隐藏角色（原型 27/28） ----------
+  // ---------- 男性池隐藏角色（原型 27/28） ----------
   {
-    id: '27-u',
+    id: '27-m',
     archetypeId: 27,
     archetype: '魔童反骨',
     name: '魔童哪吒',
-    gender: 'universal',
+    gender: 'male',
     source: '哪吒',
     pattern: 'H-L-M-L-M',
     easterKey: 'nezha',
@@ -1131,11 +1131,11 @@ export const rawCharacters: Character[] = [
       'TA是选秀复活赛常驻选手，每次淘汰都能哭上热搜。但TA的心眼子约等于零：被推销办卡时以为对方真的为TA好，回家才反应过来。'
   },
   {
-    id: '28-u',
+    id: '28-m',
     archetypeId: 28,
     archetype: '黑神话悟空',
     name: '黑神话孙悟空',
-    gender: 'universal',
+    gender: 'male',
     source: '黑神话悟空',
     pattern: 'H-M-L-L-H',
     easterKey: 'wukong',
@@ -1151,5 +1151,50 @@ export const rawCharacters: Character[] = [
     ],
     parallelUniverse:
       'TA是直播带货头部主播，场观稳定破十万。但TA的情感值常年欠费：朋友哭诉到一半，TA默默递纸巾，憋半天只说了句「多喝热水」。'
+  },
+  // ---------- 女性池隐藏角色（原型 29/30） ----------
+  {
+    id: '29-f',
+    archetypeId: 29,
+    archetype: '执念填海',
+    name: '精卫',
+    gender: 'female',
+    source: '山海经',
+    pattern: 'L-L-H-H-H',
+    easterKey: 'jingwei',
+    quote: '这海，我一天填不平，就填一万天。',
+    quoteExtra: '别劝我，劝我也没用。',
+    brief: '溺于东海的炎帝之女，化鸟衔石，跟一片海死磕到底。',
+    tags: ['#衔石填海', '#小透明', '#血条厚', '#谁劝跟谁急'],
+    interpretation: [
+      '你这个人，活脱脱一只「精卫」：平时安安静静不抢话，可一旦认准一件事，十头牛都拉不回来。',
+      '细节就藏在这些地方：你在人群里永远是最安静的那个，聚会合照主动站边上；你心思单纯不爱算计，人情世故全靠真心硬闯；但你认死理认到可爱，定了目标就每天打卡，风雨无阻。',
+      '但你太在意别人，总把别人的事当自己的事扛；但你太认死理，撞到南墙还想把墙拆了继续走。',
+      '你不是偏执，你是把「不可能」三个字，一天一天填成「可能」。'
+    ],
+    parallelUniverse:
+      'TA是海岸线生态修复志愿者队长，十年如一日往滩涂上种红树林。但TA的执棋力常年欠费：团建玩剧本杀，TA第一轮就把凶手牌亮出来问「这个角色怎么演」。'
+  },
+  {
+    id: '30-f',
+    archetypeId: 30,
+    archetype: '创世补天',
+    name: '女娲',
+    gender: 'female',
+    source: '中国神话',
+    pattern: 'H-H-H-M-H',
+    easterKey: 'nuwa',
+    quote: '天塌了？没事，我来补。',
+    quoteExtra: '你们都是我一个一个捏出来的。',
+    brief: '抟土造人又炼石补天，宇宙级烂摊子的最终兜底人。',
+    tags: ['#抟土造人', '#存在感爆棚', '#八百个心眼', '#宇宙级保姆'],
+    interpretation: [
+      '你这个人，活脱脱一个「女娲」：走到哪都是主心骨，天塌下来大家第一个想到的就是你。',
+      '细节就藏在这些地方：你天生自带气场，群里一呼百应；你脑子转得飞快，别人的烂摊子到你手里三两句就理出头绪；你心软得不行，看不得任何人受委屈，朋友的破事你全当自己的事。',
+      '但你太能扛，什么都往自己身上揽，累到崩溃也不肯麻烦别人；但你太爱操心，连陌生人的忙都忍不住要帮。',
+      '你不是爱当救世主，你只是看不得这个世界漏风。'
+    ],
+    parallelUniverse:
+      'TA是互联网大厂金牌项目经理，同时挂着七个救火群，人送外号「人间补丁」。但TA的私人生活一团乱麻：自己的体检报告在包里塞了三个月，愣是没空拆开看。'
   }
 ]

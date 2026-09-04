@@ -47,6 +47,13 @@ function createPosterResult(): TestResult {
   const main = characters.find((c) => c.id === '1-m') as Character
   return {
     pool: 'male',
+    dimensionTotals: {
+      presence: 36,
+      cognition: 30,
+      emotion: 30,
+      order: 24,
+      endurance: 30
+    },
     dimensionScores: {
       presence: 8.5,
       cognition: 6,

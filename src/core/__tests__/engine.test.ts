@@ -1,214 +1,165 @@
-/**
- * 核心算法测试（用例编号与 specs/30-scoring-algorithm.md §7 一一对应）
- */
 import { describe, expect, it } from 'vitest'
-import { averageScore, bandOf, bandToFinal, OPTION_SCORE, patternFromBands } from '../scoring'
-import { manhattan, matchCharacters, patternToBands } from '../matcher'
+import { CATEGORIES, characters } from '../../data'
+import type { CategoryMeta, Character, OptionKey, Question, ScoringAnswers } from '../../types'
 import { resolveEasterLock } from '../easter'
-import { characterRadarValues, computeResult, IncompleteAnswersError, resolvePool } from '../engine'
-import { characters, questionsFemale, questionsMale } from '../../data'
-import type { Answer, Character, FinalBand } from '../../types'
+import { computeResult, IncompleteAnswersError } from '../engine'
+import { matchByLut, matchRelative, manhattan, patternToBands } from '../matcher'
+import { bandFromTotal, CHARACTER_ANCHOR, patternFromBands } from '../scoring'
 
-/** 构造答题记录：每题选指定 key（默认全 A） */
-function answerAll(
-  questions: typeof questionsMale,
-  pick: (qid: number) => 'A' | 'B' | 'C' | 'D' = () => 'A'
-): Answer[] {
-  return questions.map((q) => ({ questionId: q.id, optionKey: pick(q.id) }))
+const ANSWER_KEYS: OptionKey[] = ['A', 'B', 'C', 'D', 'E', 'F']
+
+function allA(): ScoringAnswers {
+  return Array.from({ length: 15 }, () => 'A')
 }
 
-describe('#1 bandOf 边界', () => {
-  it('3.49 → L，3.5 → M，6.49 → M，6.5 → H', () => {
-    expect(bandOf(3.49)).toBe('L')
-    expect(bandOf(3.5)).toBe('M')
-    expect(bandOf(6.49)).toBe('M')
-    expect(bandOf(6.5)).toBe('H')
-  })
-})
+function seedAnswerKeys(category: CategoryMeta, tag: string): { q7: OptionKey; q11: OptionKey } {
+  const q7 = category.questions.find((q) => q.id === 7)?.options.find((o) => o.seedTag === tag)
+  const q11 = category.questions.find((q) => q.id === 11)?.options.find((o) => o.seedTag === tag)
+  if (!q7 || !q11) throw new Error(`找不到 ${tag} 种子`)
+  return { q7: q7.key, q11: q11.key }
+}
 
-describe('#2 M1/M2 归并为 M', () => {
-  it('bandToFinal', () => {
-    expect(bandToFinal('M1')).toBe('M')
-    expect(bandToFinal('M2')).toBe('M')
-    expect(bandToFinal('L')).toBe('L')
-    expect(bandToFinal('H')).toBe('H')
-  })
-})
+function lockAnswers(category: CategoryMeta, tag: string): ScoringAnswers {
+  const answers = allA()
+  const keys = seedAnswerKeys(category, tag)
+  answers[6] = keys.q7
+  answers[10] = keys.q11
+  return answers
+}
 
-describe('#3 曼哈顿距离计算', () => {
-  it('手算对拍', () => {
-    // H-H-M-L-H vs H-H-M-L-H → 0
-    expect(manhattan(patternToBands('H-H-M-L-H'), patternToBands('H-H-M-L-H'))).toBe(0)
-    // H-H-M-L-H vs H-H-M-H-H → |1-3|=2
-    expect(manhattan(patternToBands('H-H-M-L-H'), patternToBands('H-H-M-H-H'))).toBe(2)
-    // L-L-L-L-L vs H-H-H-H-H → 2*5=10
-    expect(manhattan(patternToBands('L-L-L-L-L'), patternToBands('H-H-H-H-H'))).toBe(10)
-  })
-})
+function makeCharacter(archetypeId: number, pattern: string): Character {
+  return {
+    id: `${archetypeId}-m`,
+    archetypeId,
+    archetype: `原型${archetypeId}`,
+    name: `角色${archetypeId}`,
+    gender: 'male',
+    source: '测试',
+    pattern,
+    quote: '',
+    quoteExtra: '',
+    brief: '',
+    tags: [],
+    interpretation: [],
+    parallelUniverse: ''
+  }
+}
 
-describe('#4 距离并列时按 archetypeId 升序', () => {
-  it('等距候选取原型编号更小者', () => {
-    const make = (archetypeId: number, pattern: string): Character => ({
-      id: `${archetypeId}-m`,
-      archetypeId,
-      archetype: `原型${archetypeId}`,
-      name: `角色${archetypeId}`,
-      gender: 'male',
-      source: '测试',
-      pattern,
-      quote: '',
-      quoteExtra: '',
-      brief: '',
-      tags: [],
-      interpretation: [],
-      parallelUniverse: ''
-    })
-    // 用户 H-H-M-L-H；两个候选距离均为 1
-    const chars = [make(9, 'H-H-M-M-H'), make(2, 'H-H-M-L-M')]
-    const { main } = matchCharacters(patternToBands('H-H-M-L-H'), 'male', chars)
-    expect(main.archetypeId).toBe(2)
-  })
-})
-
-describe('#5 角色池过滤', () => {
-  it('男性池不含 female-only 角色，含 universal 角色', () => {
-    const { main } = matchCharacters(patternToBands('H-H-M-L-H'), 'male', characters)
-    expect(main.gender).not.toBe('female')
-    const universalInPool = characters.filter((c) => c.gender === 'universal')
-    expect(universalInPool.length).toBe(2) // #27 #28
-  })
-
-  it('用户 H-H-M-L-H 在男池精确命中高启强', () => {
-    const { main, relative } = matchCharacters(patternToBands('H-H-M-L-H'), 'male', characters)
-    expect(main.name).toBe('高启强')
-    expect(relative).not.toBeNull()
-  })
-})
-
-describe('#6 彩蛋：题14 D + 题15 D → 锁定魔童哪吒（双题库）', () => {
+describe('v4.0 分维阈值边界', () => {
   it.each([
-    ['male', questionsMale],
-    ['female', questionsFemale]
-  ] as const)('%s 题库', (_label, bank) => {
-    const answers = answerAll(bank, (qid) => (qid === 14 || qid === 15 ? 'D' : 'A'))
-    expect(resolveEasterLock(bank, answers)).toBe('nezha')
-    const result = computeResult(bank, answers, characters)
+    ['presence', 28, 'L'],
+    ['presence', 29, 'M'],
+    ['presence', 35, 'M'],
+    ['presence', 36, 'H'],
+    ['cognition', 28, 'L'],
+    ['cognition', 29, 'M'],
+    ['cognition', 36, 'M'],
+    ['cognition', 37, 'H'],
+    ['emotion', 29, 'L'],
+    ['emotion', 30, 'M'],
+    ['emotion', 35, 'M'],
+    ['emotion', 36, 'H'],
+    ['order', 28, 'L'],
+    ['order', 29, 'M'],
+    ['order', 36, 'M'],
+    ['order', 37, 'H'],
+    ['endurance', 26, 'L'],
+    ['endurance', 27, 'M'],
+    ['endurance', 39, 'M'],
+    ['endurance', 40, 'H']
+  ] as const)('%s total=%s → %s', (dimension, total, expected) => {
+    expect(bandFromTotal(total, dimension)).toBe(expected)
+  })
+})
+
+describe('LUT 与灵魂近亲', () => {
+  it('同输入同输出且主结果不是彩蛋角色', () => {
+    const category = CATEGORIES.xiuxian
+    const first = computeResult(category, allA(), characters)
+    const second = computeResult(category, allA(), characters)
+    expect(first.main.id).toBe(second.main.id)
+    expect(first.easterLocked).toBe(false)
+    expect(first.main.easterKey).toBeUndefined()
+    expect(matchByLut(first.pattern, 'male', characters).id).toBe(first.main.id)
+  })
+
+  it('灵魂近亲并列按 archetypeId 升序', () => {
+    const chars = [makeCharacter(9, 'H-H-M-M-H'), makeCharacter(2, 'H-H-M-L-M')]
+    const relative = matchRelative('H-H-M-L-H', 'male', chars, '1-m')
+    expect(relative?.archetypeId).toBe(2)
+    expect(manhattan(patternToBands('H-H-M-L-H'), patternToBands('H-H-M-L-M'))).toBe(1)
+  })
+})
+
+describe('v4.0 彩蛋双题锁定', () => {
+  it.each([
+    ['xiuxian', 'nezha', '27-m'],
+    ['xiuxian', 'wukong', '28-m'],
+    ['mori', 'jingwei', '29-f'],
+    ['mori', 'nuwa', '30-f']
+  ] as const)('%s %s 双题命中锁定 %s', (categoryId, tag, expectedId) => {
+    const category = CATEGORIES[categoryId]
+    const answers = lockAnswers(category, tag)
+    expect(resolveEasterLock(category.questions, answers, category.pool)).toBe(tag)
+    const result = computeResult(category, answers, characters)
     expect(result.easterLocked).toBe(true)
-    expect(result.main.name).toBe('魔童哪吒')
+    expect(result.main.id).toBe(expectedId)
+  })
+
+  it('单题命中不触发', () => {
+    const category = CATEGORIES.xiuxian
+    const answers = lockAnswers(category, 'nezha')
+    answers[10] = 'A'
+    expect(resolveEasterLock(category.questions, answers, category.pool)).toBeNull()
+    expect(computeResult(category, answers, characters).easterLocked).toBe(false)
+  })
+
+  it('跨池种子不触发', () => {
+    const category = CATEGORIES.xiuxian
+    const overridden = {
+      ...category,
+      questions: category.questions.map((q) => ({
+        ...q,
+        options: q.options.map((o): Question['options'][number] =>
+          o.seedTag ? { ...o, seedTag: 'jingwei' as const } : o
+        ) as Question['options']
+      }))
+    } satisfies CategoryMeta
+    const answers = lockAnswers(category, 'nezha')
+    expect(resolveEasterLock(overridden.questions, answers, 'male')).toBeNull()
+    expect(computeResult(overridden, answers, characters).easterLocked).toBe(false)
   })
 })
 
-describe('#7 彩蛋：题14 C + 题15 C → 锁定黑神话悟空', () => {
-  it('male 题库', () => {
-    const answers = answerAll(questionsMale, (qid) => (qid === 14 || qid === 15 ? 'C' : 'A'))
-    const result = computeResult(questionsMale, answers, characters)
-    expect(result.easterLocked).toBe(true)
-    expect(result.main.name).toBe('黑神话孙悟空')
-  })
-})
-
-describe('#8 彩蛋：C/D 混合 → 不锁定', () => {
-  it('题14 C + 题15 D', () => {
-    const answers = answerAll(questionsMale, (qid) => (qid === 14 ? 'C' : qid === 15 ? 'D' : 'A'))
-    expect(resolveEasterLock(questionsMale, answers)).toBeNull()
-    const result = computeResult(questionsMale, answers, characters)
-    expect(result.easterLocked).toBe(false)
-  })
-})
-
-describe('#9 彩蛋锁定时 relative 仍正常计算', () => {
-  it('relative 为正常匹配第二名且非隐藏角色', () => {
-    const answers = answerAll(questionsMale, (qid) => (qid === 14 || qid === 15 ? 'D' : 'A'))
-    const result = computeResult(questionsMale, answers, characters)
-    expect(result.easterLocked).toBe(true)
-    expect(result.relative).not.toBeNull()
-    expect(result.relative?.easterKey).toBeUndefined()
-  })
-})
-
-describe('#10 真实题库全选 A 跑通 computeResult', () => {
-  it('模式串合法，主结果在角色库中', () => {
-    const answers = answerAll(questionsMale)
-    const result = computeResult(questionsMale, answers, characters)
-    expect(result.pattern).toMatch(/^[HML](-[HML]){4}$/)
-    expect(characters.some((c) => c.id === result.main.id)).toBe(true)
-    // 全 A：题1 A → H，其余 A 全为 L → 存在感 (9+2+2)/3=4.33 M，其余维度 2.00 L
-    expect(result.pattern).toBe('M-L-L-L-L')
-    expect(result.pool).toBe('male') // 题1 A → male
-  })
-})
-
-describe('#11 数据校验', () => {
-  it('双题库与角色库已通过启动校验（import 即校验）', () => {
-    expect(questionsMale).toHaveLength(15)
-    expect(questionsFemale).toHaveLength(15)
-    expect(characters).toHaveLength(54)
-  })
-
-  it('彩蛋题种子标记齐全', () => {
-    for (const bank of [questionsMale, questionsFemale]) {
-      for (const q of bank.filter((x) => x.type === 'easter')) {
-        const seeds = q.options.map((o) => o.seedTag).filter(Boolean)
-        expect(seeds).toContain('nezha')
-        expect(seeds).toContain('wukong')
-      }
+describe('真实题库跑通', () => {
+  it('6 类别全选 A 均可算出合法结果', () => {
+    for (const category of Object.values(CATEGORIES)) {
+      const result = computeResult(category, allA(), characters)
+      expect(result.pattern).toMatch(/^[HML](-[HML]){4}$/)
+      expect(result.main.easterKey).toBeUndefined()
+      expect(result.relative).not.toBeNull()
     }
   })
+
+  it('答案不足 15 抛 IncompleteAnswersError', () => {
+    expect(() => computeResult(CATEGORIES.xiuxian, allA().slice(0, 14), characters)).toThrow(
+      IncompleteAnswersError
+    )
+  })
+
+  it('patternFromBands 与角色锚点', () => {
+    expect(patternFromBands(['H', 'M', 'M', 'L', 'H'])).toBe('H-M-M-L-H')
+    expect(CHARACTER_ANCHOR).toEqual({ L: 2, M: 5, H: 9 })
+  })
 })
 
-describe('补充边界', () => {
-  it('未满 15 题抛 IncompleteAnswersError', () => {
-    const answers = answerAll(questionsMale).slice(0, 14)
-    expect(() => computeResult(questionsMale, answers, characters)).toThrow(IncompleteAnswersError)
-  })
-
-  it('resolvePool 由题 1 选项决定', () => {
-    expect(
-      resolvePool(
-        questionsMale,
-        answerAll(questionsMale, () => 'A')
-      )
-    ).toBe('male')
-    expect(
-      resolvePool(
-        questionsMale,
-        answerAll(questionsMale, () => 'B')
-      )
-    ).toBe('female')
-    expect(
-      resolvePool(
-        questionsMale,
-        answerAll(questionsMale, () => 'C')
-      )
-    ).toBe('male')
-    expect(
-      resolvePool(
-        questionsMale,
-        answerAll(questionsMale, () => 'D')
-      )
-    ).toBe('female')
-  })
-
-  it('averageScore 与 OPTION_SCORE', () => {
-    expect(OPTION_SCORE).toEqual({ L: 2, M1: 4, M2: 6, H: 9 })
-    expect(averageScore([2, 6, 9])).toBe(5.67)
-  })
-
-  it('characterRadarValues 锚点换算', () => {
-    const gao = characters.find((c) => c.id === '1-m')
-    expect(gao).toBeDefined()
-    expect(characterRadarValues(gao as Character)).toEqual([9, 9, 5, 2, 9])
-  })
-
-  it('patternFromBands', () => {
-    const bands: FinalBand[] = ['H', 'L', 'M', 'L', 'H']
-    expect(patternFromBands(bands)).toBe('H-L-M-L-H')
-  })
-
-  it('forcePool 切换性别版：同答案在女池命中女角色', () => {
-    const answers = answerAll(questionsMale, () => 'A') // 默认分流 male
-    const result = computeResult(questionsMale, answers, characters, { forcePool: 'female' })
-    expect(result.pool).toBe('female')
-    expect(result.main.gender).not.toBe('male')
+describe('random answer keys never crash', () => {
+  it('所有 6 个字母都在真实题中出现', () => {
+    for (const category of Object.values(CATEGORIES)) {
+      for (const question of category.questions) {
+        const keys = question.options.map((o) => o.key)
+        for (const key of ANSWER_KEYS) expect(keys).toContain(key)
+      }
+    }
   })
 })

@@ -48,12 +48,13 @@ CBTI/
     ├── types/index.ts          # 全部领域类型
     ├── data/
     │   ├── schemas.ts          # Zod schema（与 specs/20 逐字一致）
-    │   ├── questions.male.ts   # 男性题库 15 题
-    │   ├── questions.female.ts # 女性题库 15 题
-    │   ├── characters.ts       # 28 组角色（54 条）
+    │   ├── theme-split.ts      # 题材分流题（id=0）
+    │   ├── questions/          # 6 类别题库，每类 15 题
+    │   ├── match-lut.ts        # LUT（scripts/build-match-table.py 生成，禁手改）
+    │   ├── characters.ts       # 30 组原型（56 条）
     │   └── index.ts            # 聚合 + 启动时校验导出
     ├── core/                   # 纯函数领域逻辑（零 UI 依赖，可单测）
-    │   ├── scoring.ts          # 计分
+    │   ├── scoring.ts          # 3×2 网格累加与分维阈值
     │   ├── matcher.ts          # 曼哈顿距离匹配
     │   ├── easter.ts           # 彩蛋锁定
     │   └── engine.ts           # computeResult 编排
@@ -68,11 +69,11 @@ CBTI/
 
 | 对象 | 规则 | 示例 |
 |------|------|------|
-| 文件名 | kebab-case | `radar-chart.vue`、`questions.male.ts` |
+| 文件名 | kebab-case | `radar-chart.vue`、`theme-split.ts` |
 | 组件名 | PascalCase | `<RadarChart />` |
 | 类型/接口 | PascalCase | `Question`、`TestResult` |
 | 变量/函数 | camelCase | `computeResult` |
-| 常量 | SCREAMING_SNAKE | `OPTION_SCORE` |
+| 常量 | SCREAMING_SNAKE | `DIMENSION_THRESHOLDS` |
 | 维度/档位等领域词汇 | **只用** specs/00 定义的 key | `presence`，禁止 `presenceValue` 之外再造词 |
 | CSS 类 | UnoCSS 原子类优先；自定义类用 `cbti-` 前缀 | `cbti-card` |
 

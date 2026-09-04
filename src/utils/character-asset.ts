@@ -4,7 +4,7 @@
  */
 export function characterPortraitFileName(id: string): string {
   const [archetypeId, gender] = id.split('-')
-  const suffix = gender === 'f' ? 'female' : gender === 'u' ? 'universal' : 'male'
+  const suffix = gender === 'f' ? 'female' : 'male'
   return `char-${archetypeId.padStart(2, '0')}-${suffix}.webp`
 }
 
@@ -14,7 +14,7 @@ export function characterPortraitPath(id: string): string {
 
 export function characterHeadFileName(id: string): string {
   const [archetypeId, gender] = id.split('-')
-  const suffix = gender === 'f' ? 'female' : gender === 'u' ? 'universal' : 'male'
+  const suffix = gender === 'f' ? 'female' : 'male'
   return `head-${archetypeId.padStart(2, '0')}-${suffix}.webp`
 }
 

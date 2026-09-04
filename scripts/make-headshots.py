@@ -4,7 +4,7 @@
 用法：python3 scripts/make-headshots.py
 输入：src/pkg-characters/characters/char-*.webp（54 张 640×640 立绘）
 处理：按头部区域裁方（居中半身像的头部在上半部中央）→ 320×320 → WebP
-输出：src/pkg-heads/heads/head-{原型两位补零}-{male|female|universal}.webp
+输出：src/pkg-heads/heads/head-{原型两位补零}-{male|female}.webp
 
 裁切参数：CROP_SIDE 占原图比例、CROP_TOP 顶部偏移比例——如有角色裁偏，
 调这两个常量后重跑（幂等覆盖）。
@@ -39,7 +39,7 @@ def main() -> int:
     errors: list[str] = []
     images: list[tuple[str, Image.Image]] = []
 
-    files = sorted(f for f in SRC.iterdir() if re.match(r'char-\d{2}-(male|female|universal)\.webp$', f.name))
+    files = sorted(f for f in SRC.iterdir() if re.match(r'char-\d{2}-(male|female)\.webp$', f.name))
     if len(files) != 54:
         errors.append(f'立绘数量异常：期望 54，实际 {len(files)}')
 
