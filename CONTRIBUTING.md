@@ -28,7 +28,7 @@ pnpm lint && pnpm typecheck && pnpm test   # 提交前三连，必须全绿
 
 ## 3. 常见场景操作手册
 
-**改一道题**：改 `CBTI_test_questions_gendered.md` → 同步 `src/data/questions.*.ts` → 跑 `pnpm test`（Zod 会自动卡约束）。
+**改一道题**：改 `CBTI_test_questions_categorized.md` v4.0 题库 → 用 `python3 scripts/build-match-table.py --emit-ts` 重新生成 `src/data/category/*.ts` 与 `match-lut.ts` → 跑 `pnpm test`（Zod 会自动卡约束）。
 
 **加一个角色**：先在 PRD.md 角色表登记（原型号、模式串、出处）→ 再改 `src/data/characters.ts` → 内容管线补文案 → C07 校验。
 

@@ -54,7 +54,7 @@
 
 ## 6. 数据来源
 
-- 用户线：`TestResult.dimensionScores`（1.00–10.00，直接入图）。
+- 用户线：`TestResult.dimensionScores`。v4.0 起不再是 3 题均分，而是按 specs/30 §6 把每维原始总分线性归一化到 1.00–10.00（保留 2 位小数）后直接入图。
 - 角色线：角色 `pattern` 五位 → `CHARACTER_ANCHOR { L: 2, M: 5, H: 9 }`。
 
 ## 7. 降级与异常

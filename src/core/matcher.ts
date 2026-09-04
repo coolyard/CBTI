@@ -1,7 +1,8 @@
 /**
- * 曼哈顿距离匹配（规范：specs/30-scoring-algorithm.md §3）
- * 纯函数，禁止引入 vue / uni API。
+ * 匹配规则（规范：specs/30-scoring-algorithm.md §4）
+ * 主结果查均衡 LUT；灵魂近亲按曼哈顿距离取池内第二名。
  */
+import { MATCH_LUT } from '../data/match-lut'
 import type { Character, FinalBand, RolePool } from '../types'
 import { BAND_CODE } from './scoring'
 
@@ -30,28 +31,41 @@ export function manhattan(a: FinalBand[], b: FinalBand[]): number {
   return a.reduce((sum, band, i) => sum + Math.abs(BAND_CODE[band] - BAND_CODE[b[i]]), 0)
 }
 
-/**
- * 在指定角色池中匹配主结果与灵魂近亲。
- * 候选：gender === pool 或 universal（schema 保证角色库 pattern 全部非空）。
- * 排序：距离升序，并列时 archetypeId 升序（确定性）。
- */
-export function matchCharacters(
-  userBands: FinalBand[],
-  pool: RolePool,
-  characters: Character[]
-): { main: Character; relative: Character | null } {
-  const candidates = characters.filter((c) => c.gender === pool || c.gender === 'universal')
+function regularCandidates(pool: RolePool, characters: Character[]): Character[] {
+  const candidates = characters.filter((c) => c.gender === pool && !c.easterKey)
   if (candidates.length === 0) {
-    throw new DataIntegrityError(`角色池 ${pool} 候选为空`)
+    throw new DataIntegrityError(`角色池 ${pool} 常规候选为空`)
   }
+  return candidates
+}
+
+/** LUT 主结果：由 match-lut.ts 的 243 格映射直接给出 characterId */
+export function matchByLut(pattern: string, pool: RolePool, characters: Character[]): Character {
+  const characterId = MATCH_LUT[pool][pattern]
+  if (!characterId) {
+    throw new DataIntegrityError(`LUT 缺少 ${pool} 池模式串 ${pattern}`)
+  }
+  const character = characters.find((c) => c.id === characterId)
+  if (!character) {
+    throw new DataIntegrityError(`LUT 指向不存在的角色：${characterId}`)
+  }
+  return character
+}
+
+/** 灵魂近亲：排除主结果后取曼哈顿距离最小者；并列按 archetypeId 升序 */
+export function matchRelative(
+  userPattern: string,
+  pool: RolePool,
+  characters: Character[],
+  excludeCharacterId?: string
+): Character | null {
+  const userBands = patternToBands(userPattern)
+  const candidates = regularCandidates(pool, characters).filter((c) => c.id !== excludeCharacterId)
   const ranked = candidates
-    .map((c) => ({
-      character: c,
-      distance: manhattan(userBands, patternToBands(c.pattern))
+    .map((character) => ({
+      character,
+      distance: manhattan(userBands, patternToBands(character.pattern))
     }))
-    .sort((x, y) => x.distance - y.distance || x.character.archetypeId - y.character.archetypeId)
-  return {
-    main: ranked[0].character,
-    relative: ranked.length > 1 ? ranked[1].character : null
-  }
+    .sort((a, b) => a.distance - b.distance || a.character.archetypeId - b.character.archetypeId)
+  return ranked.length > 0 ? ranked[0].character : null
 }

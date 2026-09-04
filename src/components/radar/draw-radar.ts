@@ -168,18 +168,22 @@ export function computeRadarLayout(
     throw new Error('[CBTI][Radar] labels 长度必须为 5')
   }
 
-  const labelFontSize = Math.max(10, Math.round(size / 13.3))
+  const labelFontSize = Math.max(10, Math.round(size / 22))
   const widths = labels.map((label) => measureText(label, labelFontSize))
   const sideWidths = DIMENSIONS.map((_, index) => {
     const cos = Math.cos(degToRad(-90 + 72 * index))
     return Math.abs(cos) > 0.1 ? widths[index] : 0
   })
   const maxSideWidth = Math.max(...sideWidths)
-  const radius = Math.max(2, size / 2 - Math.max(44, maxSideWidth + 12))
-  const labelMargin = size / 2 - radius
+  // 侧向标签尽可能外置，但不再让超宽标签把五边形压到 <72% 画布直径；
+  // 残余溢出交给 clampBox 兜底。
+  const sideReserve = Math.max(28, maxSideWidth + 8)
+  const reserveCap = Math.max(44, Math.floor(size * 0.135))
+  const labelMargin = Math.min(sideReserve, reserveCap)
+  const radius = Math.max(2, size / 2 - labelMargin)
 
   const labelLayouts: RadarLabelLayout[] = DIMENSIONS.map((_, index) => {
-    const anchor = polygonPoint(size, radius + 26, index, 1)
+    const anchor = polygonPoint(size, radius + 16, index, 1)
     const cos = Math.cos(degToRad(-90 + 72 * index))
     let align: RadarLabelLayout['align'] = 'center'
     if (Math.abs(cos) > 0.1) {

@@ -4,7 +4,7 @@
  */
 import type { Character } from '../types'
 
-const HOME_CAROUSEL_IDS = ['1-m', '1-f', '27-u', '28-u', '5-m', '23-f'] as const
+const HOME_CAROUSEL_IDS = ['1-m', '1-f', '27-m', '28-m', '5-m', '23-f'] as const
 
 const PLACEHOLDER_CLASSES = [
   'bg-cbti-card-1',
