@@ -3,6 +3,8 @@ import { defineConfig, presetUno } from 'unocss'
 // 设计令牌唯一来源：specs/40-design-system.md（改动必须先改 spec）
 export default defineConfig({
   presets: [presetUno()],
+  // UnoCSS dev 调试类 `?` 会生成 `.\?`，微信 WXSS 无法解析，故屏蔽
+  blocklist: ['?'],
   safelist: ['bg-cbti-card-1', 'bg-cbti-card-2', 'bg-cbti-card-3', 'bg-cbti-card-4'],
   theme: {
     colors: {

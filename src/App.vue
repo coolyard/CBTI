@@ -46,11 +46,6 @@ page {
   --cbti-theme: #ffc224;
 }
 
-.page > :not(.background-decor) {
-  position: relative;
-  z-index: 1;
-}
-
 @keyframes pop-in {
   from {
     transform: scale(0.8) rotate(-3deg);

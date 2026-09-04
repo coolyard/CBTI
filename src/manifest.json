@@ -10,7 +10,7 @@
     "title": "CBTI · 角色人格指标"
   },
   "mp-weixin": {
-    "appid": "",
+    "appid": "wx0e80f4357d7c53d4",
     "setting": { "urlCheck": false, "minified": true },
     "lazyCodeLoading": "requiredComponents"
   }

@@ -1,5 +1,5 @@
 <template>
-  <view class="page" :data-theme="resultTheme">
+  <view class="page" :data-theme="resultTheme" :style="safeAreaStyle">
     <BackgroundDecor
       :decor-names="['bang', 'bolt', 'fire', 'check', 'dots', 'star']"
       :spots="RESULT_STICKER_SPOTS"
@@ -171,9 +171,11 @@ import { homePlaceholderClass } from '../../core/home'
 import { useQuizStore } from '../../stores/quiz'
 import { DIMENSIONS, DIMENSION_LABELS } from '../../types'
 import { characterHeadPath, characterPortraitPath } from '../../utils/character-asset'
+import { getSafeAreaTopStyle } from '../../utils/safe-area'
 import { copyShareLink, createShareMessage } from '../../utils/share'
 
 const quiz = useQuizStore()
+const safeAreaStyle = getSafeAreaTopStyle()
 const result = computed(() => quiz.result)
 
 const RESULT_STICKER_SPOTS = [
@@ -291,11 +293,20 @@ async function handleCopyShare(): Promise<void> {
 <style scoped>
 .page {
   min-height: 100vh;
-  padding: 48rpx 32rpx calc(env(safe-area-inset-bottom) + 180rpx);
+  padding: var(--safe-top) 32rpx calc(env(safe-area-inset-bottom) + 180rpx);
   box-sizing: border-box;
   background-color: var(--cbti-bg);
   position: relative;
   overflow-x: hidden;
+}
+
+.identity,
+.section,
+.actions,
+.share-fab,
+.modal-mask {
+  position: relative;
+  z-index: 1;
 }
 
 .identity {

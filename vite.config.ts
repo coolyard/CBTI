@@ -75,8 +75,12 @@ function copyPkgAssets() {
     name: 'copy-pkg-assets',
     apply: 'build' as const,
     closeBundle() {
+      const outputRoots = new Set(['dist/build/h5', 'dist/build/mp-weixin'])
+      if (process.env.UNI_OUTPUT_DIR) {
+        outputRoots.add(process.env.UNI_OUTPUT_DIR)
+      }
       for (const group of PKG_ASSET_GROUPS) {
-        for (const outputRoot of ['dist/build/h5', 'dist/build/mp-weixin']) {
+        for (const outputRoot of outputRoots) {
           const target = resolve(process.cwd(), outputRoot, group.relative)
           mkdirSync(target, { recursive: true })
           cpSync(group.source, target, { recursive: true })

@@ -1,5 +1,5 @@
 <template>
-  <view class="page">
+  <view class="page" :style="safeAreaStyle">
     <BackgroundDecor :decor-names="['burst', 'star', 'arrow', 'bolt', 'dots', 'tape']" />
     <view class="brand">
       <text class="brand__logo font-display-cbti">CBTI</text>
@@ -67,8 +67,10 @@ import { characters } from '../../data'
 import { getHomeCarouselCharacters } from '../../core/home'
 import { useQuizStore } from '../../stores/quiz'
 import { characterPortraitPath } from '../../utils/character-asset'
+import { getSafeAreaTopStyle } from '../../utils/safe-area'
 
 const quiz = useQuizStore()
+const safeAreaStyle = getSafeAreaTopStyle()
 const carouselCharacters = getHomeCarouselCharacters(characters)
 const portraitErrors = ref<Record<string, boolean>>({})
 const hasUnfinishedProgress = computed(() => quiz.answers.length > 0 && !quiz.isComplete)
@@ -105,11 +107,19 @@ function handlePortraitError(id: string): void {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 96rpx 32rpx 48rpx;
+  padding: var(--safe-top) 32rpx 48rpx;
   box-sizing: border-box;
   background-color: var(--cbti-bg);
   position: relative;
   overflow-x: hidden;
+}
+
+.brand,
+.carousel,
+.actions,
+.footer-note {
+  position: relative;
+  z-index: 1;
 }
 
 .brand {
