@@ -35,7 +35,7 @@
                   class="carousel__portrait-image"
                   :src="characterPortraitPath(character.id)"
                   mode="aspectFit"
-                  @error="handlePortraitError(character.id)"
+                  @error="handlePortraitError(character.id, $event)"
                 />
               </view>
             </view>
@@ -60,13 +60,14 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { onShow } from '@dcloudio/uni-app'
+import { onLoad, onShow } from '@dcloudio/uni-app'
 import BackgroundDecor from '../../components/background/BackgroundDecor.vue'
 import QuoteBubble from '../../components/quote-bubble/QuoteBubble.vue'
 import { characters } from '../../data'
 import { getHomeCarouselCharacters } from '../../core/home'
 import { useQuizStore } from '../../stores/quiz'
 import { characterPortraitPath } from '../../utils/character-asset'
+import { logImageEnvironment, reportImageError } from '../../utils/image-diagnostic'
 import { getSafeAreaTopStyle } from '../../utils/safe-area'
 
 const quiz = useQuizStore()
@@ -78,6 +79,10 @@ const primaryLabel = computed(() => (hasUnfinishedProgress.value ? '继续上次
 
 onShow(() => {
   quiz.restore()
+})
+
+onLoad(() => {
+  logImageEnvironment()
 })
 
 function handlePrimary(): void {
@@ -96,8 +101,9 @@ function handleRestart(): void {
   uni.navigateTo({ url: '/pages/quiz/index' })
 }
 
-function handlePortraitError(id: string): void {
+function handlePortraitError(id: string, event: unknown): void {
   portraitErrors.value[id] = true
+  reportImageError(`home-character-${id}`, event)
 }
 </script>
 

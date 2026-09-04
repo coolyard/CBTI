@@ -24,5 +24,5 @@ export const DECOR_NAMES = [
 export type DecorName = (typeof DECOR_NAMES)[number]
 
 export function decorAssetUrl(name: DecorName): string {
-  return `/static/decor/decor-${name}.webp`
+  return `/static/decor/decor-${name}.png`
 }

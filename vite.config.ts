@@ -59,14 +59,10 @@ function servePkgAssetsDev(packageRoot: string) {
   }
 }
 
-const PKG_ASSET_GROUPS = [
+const H5_ASSET_GROUPS = [
   {
     source: resolve(process.cwd(), 'src/pkg-characters/characters'),
     relative: 'pkg-characters/characters'
-  },
-  {
-    source: resolve(process.cwd(), 'src/pkg-heads/heads'),
-    relative: 'pkg-heads/heads'
   }
 ]
 
@@ -79,8 +75,10 @@ function copyPkgAssets() {
       if (process.env.UNI_OUTPUT_DIR) {
         outputRoots.add(process.env.UNI_OUTPUT_DIR)
       }
-      for (const group of PKG_ASSET_GROUPS) {
+      for (const group of H5_ASSET_GROUPS) {
         for (const outputRoot of outputRoots) {
+          // 640 母版只给 H5 build 使用；MP 主包统一使用 src/static/characters 的 512 WebP。
+          if (!outputRoot.includes('h5')) continue
           const target = resolve(process.cwd(), outputRoot, group.relative)
           mkdirSync(target, { recursive: true })
           cpSync(group.source, target, { recursive: true })
@@ -91,11 +89,5 @@ function copyPkgAssets() {
 }
 
 export default defineConfig({
-  plugins: [
-    uni(),
-    UnoCSS(),
-    servePkgAssetsDev('pkg-characters'),
-    servePkgAssetsDev('pkg-heads'),
-    copyPkgAssets()
-  ]
+  plugins: [uni(), UnoCSS(), servePkgAssetsDev('pkg-characters'), copyPkgAssets()]
 })

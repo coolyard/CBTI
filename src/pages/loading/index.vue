@@ -29,14 +29,6 @@ let timer: ReturnType<typeof setTimeout> | null = null
 let forceTimer: ReturnType<typeof setTimeout> | null = null
 
 onLoad(() => {
-  // #ifdef MP-WEIXIN
-  const preloadSubpackage = (
-    uni as unknown as { preloadSubpackage?: (options: { name: string }) => void }
-  ).preloadSubpackage
-  preloadSubpackage?.({ name: 'pkg-characters' })
-  preloadSubpackage?.({ name: 'pkg-heads' })
-  // #endif
-
   startedAt = Date.now()
   forceTimer = setTimeout(() => goResult(), FORCE_REDIRECT_MS)
   startCopyLoop()

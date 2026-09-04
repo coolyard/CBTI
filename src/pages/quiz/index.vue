@@ -41,6 +41,7 @@
             :style="{ width: sticker.size, height: sticker.size, animationDelay: sticker.delay }"
             :src="decorAssetUrl(sticker.name)"
             mode="aspectFit"
+            @error="handleDecorError('quiz-q1-bottom', sticker.name, $event)"
           />
         </view>
       </view>
@@ -70,6 +71,7 @@
                 }"
                 :src="decorAssetUrl(sticker.name)"
                 mode="aspectFit"
+                @error="handleDecorError('quiz-top', sticker.name, $event)"
               />
             </view>
             <view class="card-sticker question-card">
@@ -107,6 +109,7 @@
                 }"
                 :src="decorAssetUrl(sticker.name)"
                 mode="aspectFit"
+                @error="handleDecorError('quiz-bottom', sticker.name, $event)"
               />
             </view>
           </view>
@@ -129,6 +132,7 @@ import BackgroundDecor from '../../components/background/BackgroundDecor.vue'
 import { CATEGORIES, themeSplitQuestion } from '../../data'
 import { useQuizStore } from '../../stores/quiz'
 import { decorAssetUrl, type DecorName } from '../../utils/decor'
+import { logImageEnvironment, reportImageError } from '../../utils/image-diagnostic'
 import { getSafeAreaTopStyle } from '../../utils/safe-area'
 import type { Category, Dimension, OptionKey } from '../../types'
 
@@ -188,6 +192,7 @@ const progressPercent = computed(() => {
 })
 
 onLoad(() => {
+  logImageEnvironment()
   quiz.restore()
   currentIndex.value = quiz.currentIndex
   if (quiz.isComplete) finishQuiz()
@@ -204,6 +209,10 @@ function handleChooseQ1(key: OptionKey): void {
 
 function isSelected(optionKey: OptionKey): boolean {
   return quiz.answers[currentIndex.value] === optionKey
+}
+
+function handleDecorError(section: string, name: DecorName, event: unknown): void {
+  reportImageError(`${section}-${name}`, event)
 }
 
 function selectOption(optionKey: OptionKey): void {

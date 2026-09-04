@@ -4,8 +4,8 @@
 用法：python3 scripts/compress-decor.py
 输入：raw-decor/{name}.png（豆包原图，白底 1:1；name 必须在白名单内）
 处理：四角洪水填充把近白背景抠成透明 → 裁内容边距 → 等比放进 320×320 透明画布
-      → WebP（质量自降直至 单张 ≤60KB 且 总量 ≤300KB）→ 规范命名
-输出：src/static/decor/decor-{name}.webp
+      → 索引色 PNG（保留透明通道）→ 规范命名
+输出：src/static/decor/decor-{name}.png
 
 规范来源：specs/70-assets.md §5（装饰贴纸行：320×320、≤60KB、总量 ≤300KB）、
          specs/45-visual-polish.md §8（可选增强，验收同立绘管线）
@@ -36,7 +36,7 @@ NAMES = [
     'burst', 'star', 'bubble', 'bolt', 'tape', 'bang', 'dots', 'arrow',
     'question', 'think', 'target', 'bulb', 'pencil', 'check', 'sweat', 'fire',
 ]
-QUALITY_LADDER = (85, 80, 75, 70, 65, 60, 55, 50)
+PNG_COLORS = 128
 
 
 def white_to_alpha(im: Image.Image, path: Path) -> Image.Image:
@@ -112,7 +112,7 @@ def main() -> int:
         except RuntimeError as e:
             errors.append(str(e))
             continue
-        images.append((f'decor-{name}.webp', im))
+        images.append((f'decor-{name}.png', im))
         covered.add(name)
 
     for name in sorted(set(NAMES) - covered):
@@ -124,26 +124,19 @@ def main() -> int:
             print(f'  - {e}')
         return 1
 
-    # 两阶段：内存中按质量档试编码，找到满足「单张 ≤60KB 且 总量 ≤300KB」的最高档再一次落盘
-    chosen: tuple[int, list[tuple[str, bytes, int]]] | None = None
-    for quality in QUALITY_LADDER:
-        encoded: list[tuple[str, bytes, int]] = []
-        for out_name, im in images:
-            buf = io.BytesIO()
-            im.save(buf, 'WEBP', quality=quality, method=6)
-            encoded.append((out_name, buf.getvalue(), buf.tell()))
-        if all(size <= MAX_BYTES for _, _, size in encoded) and \
-                sum(size for _, _, size in encoded) <= TOTAL_BUDGET:
-            chosen = (quality, encoded)
-            break
+    encoded: list[tuple[str, bytes, int]] = []
+    for out_name, im in images:
+        png = im.quantize(colors=PNG_COLORS, method=Image.FASTOCTREE)
+        buf = io.BytesIO()
+        png.save(buf, 'PNG', optimize=True)
+        encoded.append((out_name, buf.getvalue(), buf.tell()))
 
-    if chosen is None:
-        print(f'!! 质量降至 q={QUALITY_LADDER[-1]} 仍超出预算（单张 {MAX_BYTES // 1024}KB / '
-              f'总量 {TOTAL_BUDGET // 1024}KB），请人工介入')
+    if any(size > MAX_BYTES for _, _, size in encoded) or \
+            sum(size for _, _, size in encoded) > TOTAL_BUDGET:
+        print(f'!! 超出预算（单张 {MAX_BYTES // 1024}KB / 总量 {TOTAL_BUDGET // 1024}KB），请人工介入')
         return 1
 
-    quality, encoded = chosen
-    print(f'== 入库 {len(encoded)}/{len(NAMES)} 张（q={quality}，{TARGET}×{TARGET} 透明底）==')
+    print(f'== 入库 {len(encoded)}/{len(NAMES)} 张（PNG {PNG_COLORS} 色，{TARGET}×{TARGET} 透明底）==')
     for out_name, data, size in encoded:
         (DST / out_name).write_bytes(data)
         flag = ' ⚠️超 60KB' if size > MAX_BYTES else ''

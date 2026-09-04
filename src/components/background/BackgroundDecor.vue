@@ -22,7 +22,7 @@
         }"
         :src="decorAssetUrl(sticker.name)"
         mode="aspectFit"
-        @error="handleError(sticker.name)"
+        @error="handleError(sticker.name, $event)"
       />
     </view>
   </view>
@@ -31,6 +31,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { decorAssetUrl, type DecorName } from '../../utils/decor'
+import { reportImageError } from '../../utils/image-diagnostic'
 
 type DecorSpot = {
   left: string
@@ -71,8 +72,9 @@ const stickers = computed(() => {
   }))
 })
 
-function handleError(name: DecorName): void {
+function handleError(name: DecorName, event: unknown): void {
   failedDecor.value[name] = true
+  reportImageError(`decor-${name}`, event)
 }
 </script>
 

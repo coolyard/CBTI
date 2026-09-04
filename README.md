@@ -72,9 +72,11 @@ src/
 ├── stores/              # Pinia 答题状态机
 ├── components/          # 自研组件：RadarChart、drawPoster
 ├── pages/               # home / quiz / loading / result / poster
-├── pkg-characters/      # 微信分包：54 张立绘 + 分包占位页
+├── pkg-characters/      # H5 640 立绘母版（MP 不引用）
 ├── utils/               # 跨端封装：图片加载、分享、资产路径
-├── static/              # 小程序码占位图等静态资源
+├── static/
+│   ├── characters/      # MP 448 JPG 主包立绘，56 张
+│   └── ...              # 小程序码占位图等静态资源
 ├── pages.json
 ├── manifest.json
 └── uni.scss             # 设计令牌 CSS 变量桥接
@@ -98,7 +100,7 @@ tasks/                   # 主链路与内容管线任务卡
 | --- | --- |
 | 首页 | 品牌区 + 热门角色轮播 + 开始/继续测试 |
 | 答题页 | 15 题一屏一题，自动进题，可回改 |
-| 加载页 | 2.2–3s 打字机文案 + 扫描动画 + 分包预下载 |
+| 加载页 | 2.2–3s 打字机文案 + 扫描动画 |
 | 结果页 | 8 个区块：身份证 → 雷达图 → 数值条 → 标签 → 解读 → 平行宇宙 → 近亲 → 操作区 |
 | 海报页 | 750×1334 Canvas 海报预览与导出 |
 
@@ -114,13 +116,13 @@ tasks/                   # 主链路与内容管线任务卡
 
 内容已回写 `src/data/characters.ts`；内容完整度校验在内容管线阶段单独启用。
 
-## 立绘与分包
+## 立绘资产
 
-- 54 张在库 WebP 立绘位于 `src/pkg-characters/characters/`；#29/#30 资产待补
-- 命名规则：`char-{原型两位补零}-{male|female}.webp`
-- 微信小程序按分包 `pkg-characters` 打包，当前总量约 1.83MB，低于 2MB 上限
-- 加载页进入时在 MP 端预下载分包，H5 不执行
-- 首页/海报均有「立绘失败回退首字符占位」的降级逻辑；结果页按 specs/45 采用白底贴纸卡立绘
+- MP 主包 56 张 448×448 JPG（q70）：`src/static/characters/`，实测约 1.45MB
+- H5 56 张 640×640 母版：`src/pkg-characters/characters/`，仅 H5 构建/开发服务引用
+- 命名规则：MP `char-{原型两位补零}-{male|female}.jpg`；H5 `char-{原型两位补零}-{male|female}.webp`
+- MP 本地图片使用 JPG/PNG，避免 iOS 真机 WebP `getLocalImgData` 失败；头像不再生成分包头图，结果页用整立绘 + CSS 运行时裁切
+- 页面均有「立绘失败回退首字符占位」的降级逻辑；结果页按 specs/45 采用白底贴纸卡立绘
 
 ## 任务状态
 
