@@ -1,5 +1,5 @@
 <template>
-  <view class="page" :data-theme="currentDimension">
+  <view class="page" :data-theme="currentDimension" :style="safeAreaStyle">
     <BackgroundDecor />
 
     <!-- 第 1 屏：题材分流 -->
@@ -129,6 +129,7 @@ import BackgroundDecor from '../../components/background/BackgroundDecor.vue'
 import { CATEGORIES, themeSplitQuestion } from '../../data'
 import { useQuizStore } from '../../stores/quiz'
 import { decorAssetUrl, type DecorName } from '../../utils/decor'
+import { getSafeAreaTopStyle } from '../../utils/safe-area'
 import type { Category, Dimension, OptionKey } from '../../types'
 
 const totalScreenCount = 16
@@ -143,6 +144,7 @@ const THEME_EMOJIS: Record<OptionKey, string> = {
 }
 
 const quiz = useQuizStore()
+const safeAreaStyle = getSafeAreaTopStyle()
 const questions = computed(() => quiz.questions)
 const currentIndex = ref(0)
 let advanceTimer: ReturnType<typeof setTimeout> | null = null
@@ -246,12 +248,20 @@ function finishQuiz(): void {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: calc(env(safe-area-inset-top) + 24rpx) 32rpx calc(env(safe-area-inset-bottom) + 24rpx);
+  padding: var(--safe-top) 32rpx calc(env(safe-area-inset-bottom) + 12rpx);
   box-sizing: border-box;
   overflow: hidden;
   background-color: var(--cbti-bg);
   transition: background-color 300ms;
   position: relative;
+}
+
+.progress,
+.theme-screen,
+.question-swiper,
+.quiz-footer {
+  position: relative;
+  z-index: 1;
 }
 
 .progress {
@@ -268,14 +278,14 @@ function finishQuiz(): void {
 
 .progress__title {
   display: block;
-  font-size: 28rpx;
-  font-weight: 700;
+  font-size: 32rpx;
+  font-weight: 800;
 }
 
 .progress__count {
   display: block;
   font-size: 24rpx;
-  font-weight: 700;
+  font-weight: 800;
   white-space: nowrap;
 }
 
@@ -296,16 +306,16 @@ function finishQuiz(): void {
 .question-page {
   display: flex;
   flex-direction: column;
-  gap: 24rpx;
+  gap: 16rpx;
   min-height: 0;
-  padding: 8rpx 0;
+  padding: 0;
   box-sizing: border-box;
   overflow-y: auto;
 }
 
 .theme-screen {
   flex: 1;
-  margin-top: 16rpx;
+  margin-top: 8rpx;
 }
 
 .sticker-row {
@@ -313,7 +323,7 @@ function finishQuiz(): void {
   flex: none;
   align-items: center;
   justify-content: space-between;
-  height: 140rpx;
+  height: 112rpx;
   padding: 0 16rpx;
   pointer-events: none;
 }
@@ -326,7 +336,7 @@ function finishQuiz(): void {
   flex: 1;
   width: 100%;
   min-height: 0;
-  margin-top: 32rpx;
+  margin-top: 16rpx;
 }
 
 .question-page {
@@ -336,32 +346,38 @@ function finishQuiz(): void {
 .world-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
-  flex: none;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 20rpx;
+  flex: 1;
+  min-height: 0;
 }
 
 .world-card {
   display: flex;
-  min-height: 176rpx;
   flex-direction: column;
-  gap: 10rpx;
-  padding: 18rpx 16rpx;
+  justify-content: space-between;
+  gap: 6rpx;
+  min-height: 0;
+  padding: 16rpx 14rpx;
+  overflow: hidden;
 }
 
 .world-card__top {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: space-between;
 }
 
 .world-card__badge {
   display: flex;
+  flex: none;
   align-items: center;
   justify-content: center;
-  width: 44rpx;
-  height: 44rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 12rpx;
-  font-size: 22rpx;
+  font-size: 24rpx;
   font-weight: 800;
 }
 
@@ -373,9 +389,9 @@ function finishQuiz(): void {
 .world-card__title {
   display: block;
   overflow: hidden;
-  font-size: 28rpx;
+  font-size: 32rpx;
   font-weight: 700;
-  line-height: 1.35;
+  line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -384,8 +400,8 @@ function finishQuiz(): void {
   display: block;
   overflow-wrap: anywhere;
   word-break: break-all;
-  font-size: 22rpx;
-  line-height: 1.45;
+  font-size: 26rpx;
+  line-height: 1.4;
   color: rgba(26, 26, 46, 0.72);
 }
 
@@ -402,24 +418,28 @@ function finishQuiz(): void {
 }
 
 .question-card__stem {
-  font-size: 32rpx;
-  line-height: 1.6;
+  font-size: 34rpx;
+  line-height: 1.55;
 }
 
 .options {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 16rpx;
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 20rpx;
+  flex: 1;
+  min-height: 0;
 }
 
 .option {
   display: flex;
   align-items: flex-start;
+  justify-content: center;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 8rpx;
   width: 100%;
-  min-height: 132rpx;
-  padding: 16rpx;
+  min-height: 0;
+  padding: 14rpx 16rpx;
   border-width: 2px;
   border-radius: 24rpx;
   box-sizing: border-box;
@@ -435,10 +455,10 @@ function finishQuiz(): void {
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 40rpx;
-  height: 40rpx;
+  width: 48rpx;
+  height: 48rpx;
   border-radius: 12rpx;
-  font-size: 20rpx;
+  font-size: 24rpx;
   font-weight: 800;
 }
 
@@ -447,7 +467,7 @@ function finishQuiz(): void {
   overflow-wrap: anywhere;
   word-break: break-all;
   font-size: 28rpx;
-  line-height: 1.5;
+  line-height: 1.45;
 }
 
 .option--selected .option__text {
@@ -459,11 +479,11 @@ function finishQuiz(): void {
   flex: none;
   align-items: center;
   justify-content: flex-start;
-  height: 64rpx;
+  height: 48rpx;
 }
 
 .back-link {
-  font-size: 24rpx;
+  font-size: 26rpx;
   text-decoration: underline;
 }
 </style>

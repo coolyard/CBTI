@@ -1,7 +1,7 @@
 /**
  * Zod 数据契约（与 specs/20-data-schema.md §2 逐字对应）
  */
-import { z } from 'zod'
+import { z } from 'zod/v3'
 
 export const PATTERN_REGEX = /^[HML](-[HML]){4}$/
 

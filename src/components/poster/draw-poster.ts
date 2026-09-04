@@ -17,7 +17,46 @@ const HEIGHT = 1334
 const INK = '#1A1A2E'
 const PAPER = '#FFF6E5'
 const ACCENT = '#FFC224'
+const WHITE = '#FFFFFF'
 const ROTATION_COLORS = ['#B3E5FF', '#FFD1DC', '#D9F7C4', '#FFE8A3']
+
+export const POSTER_TITLE_Y = 52
+export const POSTER_BUBBLE_TOP = 116
+export const POSTER_MAX_RADAR_SIZE = 320
+export const POSTER_QR_TOP = 1228
+
+export interface PosterBox {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
+const TITLE_Y = POSTER_TITLE_Y
+const BUBBLE_TOP = POSTER_BUBBLE_TOP
+const BUBBLE_WIDTH = 620
+const PORTRAIT_HEIGHT = 410
+const QR_SIZE = 94
+const QR_TOP = POSTER_QR_TOP
+const QR_X = 80
+const PORTRAIT_TOP_GAP = 10
+const RADAR_QR_GAP = 20
+const RADAR_TOP_GAP = 8
+const MIN_RADAR_SIZE = 150
+const MAX_RADAR_SIZE = POSTER_MAX_RADAR_SIZE
+
+export function resolveRadarSize(radarTop: number): number {
+  return Math.max(MIN_RADAR_SIZE, Math.min(MAX_RADAR_SIZE, QR_TOP - RADAR_QR_GAP - radarTop))
+}
+
+export function getRadarBox(radarTop: number): PosterBox {
+  const size = resolveRadarSize(radarTop)
+  return { x: (WIDTH - size) / 2, y: radarTop, width: size, height: size }
+}
+
+export function getQrBox(): PosterBox {
+  return { x: QR_X, y: QR_TOP, width: QR_SIZE, height: QR_SIZE }
+}
 
 function isDrawableImage(value: unknown): value is { width: number; height: number } {
   if (!value || typeof value !== 'object') return false
@@ -58,14 +97,20 @@ function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number)
   return lines
 }
 
-function truncateLines(ctx: CanvasRenderingContext2D, lines: string[], maxWidth: number): string[] {
-  const result = lines.slice(0, 3)
-  let lastLine = result[2]
+function truncateLines(
+  ctx: CanvasRenderingContext2D,
+  lines: string[],
+  maxLines: number,
+  maxWidth: number
+): string[] {
+  if (lines.length <= maxLines) return lines
+  const visible = lines.slice(0, maxLines)
+  let lastLine = visible[maxLines - 1]
   while (lastLine.length > 0 && ctx.measureText(`${lastLine}…`).width > maxWidth) {
     lastLine = lastLine.slice(0, -1)
   }
-  result[2] = `${lastLine}…`
-  return result
+  visible[maxLines - 1] = `${lastLine}…`
+  return visible
 }
 
 function drawCornerDots(ctx: CanvasRenderingContext2D): void {
@@ -86,120 +131,215 @@ function drawCornerDots(ctx: CanvasRenderingContext2D): void {
   }
 }
 
-function drawPortrait(
-  ctx: CanvasRenderingContext2D,
-  result: TestResult,
-  assets: PosterAssets
-): void {
-  const centerX = WIDTH / 2
-  const centerY = 140 + 110
-  const radius = 110
+function drawQuoteBubble(ctx: CanvasRenderingContext2D, result: TestResult): { bottomY: number } {
+  const x = (WIDTH - BUBBLE_WIDTH) / 2
+  const y = BUBBLE_TOP
+  const radius = 26
+  const padX = 28
+  const padY = 16
+  const textGap = 6
+  const quoteFontSize = 30
+  const extraFontSize = 26
+  const quoteLineHeight = 36
+  const extraLineHeight = 32
+  const maxTextWidth = BUBBLE_WIDTH - padX * 2
 
-  ctx.save()
-  ctx.beginPath()
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-  ctx.clip()
-
-  if (isDrawableImage(assets.portrait)) {
-    const sourceWidth = assets.portrait.width
-    const sourceHeight = assets.portrait.height
-    // 与 scripts/make-headshots.py 的 CROP_SIDE / CROP_TOP 保持同源
-    const sourceSide = Math.round(Math.min(sourceWidth, sourceHeight) * 0.6)
-    const sourceX = Math.round((sourceWidth - sourceSide) / 2)
-    const sourceY = Math.round(sourceHeight * 0.02)
-    ctx.drawImage(
-      assets.portrait as CanvasImageSource,
-      sourceX,
-      sourceY,
-      sourceSide,
-      sourceSide,
-      centerX - radius,
-      centerY - radius,
-      radius * 2,
-      radius * 2
-    )
-  } else {
-    ctx.fillStyle = ROTATION_COLORS[(result.main.archetypeId - 1) % ROTATION_COLORS.length]
-    ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2)
-    ctx.fillStyle = INK
-    ctx.font = 'bold 96px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.textBaseline = 'middle'
-    ctx.fillText(result.main.name.charAt(0), centerX, centerY + 4)
+  ctx.font = `bold ${quoteFontSize}px sans-serif`
+  let quoteLines = wrapText(ctx, result.main.quote || '绝赞撰写中…', maxTextWidth)
+  if (quoteLines.length > 2) {
+    quoteLines = truncateLines(ctx, quoteLines, 2, maxTextWidth)
   }
-  ctx.restore()
+  const quoteHeight = quoteLines.length * quoteLineHeight
 
-  ctx.beginPath()
-  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2)
-  ctx.strokeStyle = INK
-  ctx.lineWidth = 4
-  ctx.stroke()
-}
+  let extraHeight = 0
+  let extraLines: string[] = []
+  if (result.main.quoteExtra) {
+    ctx.font = `bold ${extraFontSize}px sans-serif`
+    extraLines = wrapText(ctx, result.main.quoteExtra, maxTextWidth)
+    if (extraLines.length > 1) {
+      extraLines = truncateLines(ctx, extraLines, 1, maxTextWidth)
+    }
+    extraHeight = textGap + extraLines.length * extraLineHeight
+  }
 
-function drawQuoteBubble(ctx: CanvasRenderingContext2D, result: TestResult): void {
-  const x = (WIDTH - 590) / 2
-  const y = 540
-  const width = 590
-  const height = 140
-  const radius = 24
+  const contentHeight = quoteHeight + extraHeight
+  const height = Math.max(110, Math.ceil(contentHeight + padY * 2))
 
-  ctx.fillStyle = '#FFFFFF'
-  roundRectPath(ctx, x, y, width, height, radius)
+  ctx.fillStyle = WHITE
+  roundRectPath(ctx, x, y, BUBBLE_WIDTH, height, radius)
   ctx.fill()
   ctx.strokeStyle = INK
   ctx.lineWidth = 3
   ctx.stroke()
 
-  const tailWidth = 36
-  const tailHeight = 18
-  const centerX = x + width / 2
-  const tailApexY = y + 1
-  const tailBaseY = tailApexY + tailHeight
+  const tailWidth = 30
+  const tailHeight = 14
+  const centerX = WIDTH / 2
+  const tailBaseY = y + height
   ctx.beginPath()
-  ctx.moveTo(centerX, tailApexY)
+  ctx.moveTo(centerX, tailBaseY + tailHeight)
   ctx.lineTo(centerX - tailWidth / 2, tailBaseY)
   ctx.lineTo(centerX + tailWidth / 2, tailBaseY)
   ctx.closePath()
-  ctx.fillStyle = '#FFFFFF'
+  ctx.fillStyle = WHITE
   ctx.fill()
-  ctx.beginPath()
-  ctx.moveTo(centerX, tailApexY)
-  ctx.lineTo(centerX - tailWidth / 2, tailBaseY)
-  ctx.moveTo(centerX, tailApexY)
-  ctx.lineTo(centerX + tailWidth / 2, tailBaseY)
   ctx.strokeStyle = INK
   ctx.lineWidth = 3
   ctx.stroke()
 
+  let textY = y + padY
   ctx.fillStyle = INK
-  let fontSize = 40
-  let lineHeight = 50
-  ctx.font = `${fontSize}px sans-serif`
   ctx.textAlign = 'left'
   ctx.textBaseline = 'top'
-  const maxTextWidth = width - 48
-  let lines = wrapText(ctx, result.main.quote, maxTextWidth)
-  if (lines.length > 2) {
-    fontSize = 34
-    lineHeight = 42
-    ctx.font = `${fontSize}px sans-serif`
-    lines = wrapText(ctx, result.main.quote, maxTextWidth)
-  }
-  if (lines.length > 3) {
-    lines = truncateLines(ctx, lines, maxTextWidth)
-  }
-  const startY = Math.max(y + tailHeight + 8, y + (height - lines.length * lineHeight) / 2)
-  lines.forEach((line, index) => {
-    ctx.fillText(line, x + 24, startY + index * lineHeight)
+  ctx.font = `bold ${quoteFontSize}px sans-serif`
+  quoteLines.forEach((line) => {
+    ctx.fillText(line, x + padX, textY)
+    textY += quoteLineHeight
   })
+
+  if (extraLines.length > 0) {
+    ctx.font = `bold ${extraFontSize}px sans-serif`
+    extraLines.forEach((line) => {
+      ctx.fillText(line, x + padX, textY)
+      textY += extraLineHeight
+    })
+  }
+
+  return { bottomY: y + height + tailHeight }
 }
 
-function drawMiniRadar(ctx: CanvasRenderingContext2D, result: TestResult): void {
+function drawPortrait(
+  ctx: CanvasRenderingContext2D,
+  result: TestResult,
+  assets: PosterAssets,
+  top: number
+): number {
+  const size = PORTRAIT_HEIGHT
+  const x = (WIDTH - size) / 2
+
+  if (isDrawableImage(assets.portrait)) {
+    ctx.drawImage(assets.portrait as CanvasImageSource, x, top, size, size)
+  } else {
+    ctx.save()
+    ctx.fillStyle = ROTATION_COLORS[(result.main.archetypeId - 1) % ROTATION_COLORS.length]
+    roundRectPath(ctx, x + 10, top + 10, size - 20, size - 20, 24)
+    ctx.fill()
+    ctx.strokeStyle = INK
+    ctx.lineWidth = 3
+    ctx.stroke()
+    ctx.fillStyle = INK
+    ctx.font = '900 128px sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(result.main.name.charAt(0), WIDTH / 2, top + size / 2 + 4)
+    ctx.restore()
+  }
+
+  return top + size
+}
+
+function drawNameAndSource(
+  ctx: CanvasRenderingContext2D,
+  result: TestResult,
+  portraitBottom: number
+): { nameY: number; sourceY: number } {
+  const nameY = portraitBottom + 34
+  ctx.fillStyle = INK
+  ctx.font = '900 56px sans-serif'
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(result.main.name, WIDTH / 2, nameY)
+
+  const sourceY = nameY + 48
+  ctx.fillStyle = 'rgba(26, 26, 46, 0.6)'
+  ctx.font = 'bold 26px sans-serif'
+  ctx.fillText(`${result.main.archetype} · ${result.main.source}`, WIDTH / 2, sourceY)
+  return { nameY, sourceY }
+}
+
+function drawTags(ctx: CanvasRenderingContext2D, result: TestResult, y: number): number {
+  ctx.font = 'bold 24px sans-serif'
+  ctx.textBaseline = 'top'
+  const gap = 16
+  const tags = result.main.tags
+  const lineHeight = 34
+
+  if (tags.length === 0) {
+    ctx.fillStyle = 'rgba(26, 26, 46, 0.55)'
+    ctx.textAlign = 'center'
+    ctx.fillText('绝赞撰写中…', WIDTH / 2, y)
+    return y + lineHeight
+  }
+
+  const widths = tags.map((tag) => ctx.measureText(tag).width)
+  const totalWidth = widths.reduce((sum, width) => sum + width + gap, 0) - gap
+  let x = (WIDTH - totalWidth) / 2
+  ctx.fillStyle = ACCENT
+  ctx.textAlign = 'left'
+  tags.forEach((tag, index) => {
+    ctx.fillText(tag, x, y)
+    x += widths[index] + gap
+  })
+  return y + lineHeight
+}
+
+const INTERPRETATION_FONT = 22
+const INTERPRETATION_LINE_HEIGHT = 30
+const INTERPRETATION_X = 70
+const INTERPRETATION_MAX_WIDTH = WIDTH - 140
+
+function resolveInterpretationLines(
+  ctx: CanvasRenderingContext2D,
+  result: TestResult,
+  maxLines: number
+): string[] {
+  const text = result.main.interpretation[0]?.trim() || '绝赞撰写中…'
+  ctx.font = `${INTERPRETATION_FONT}px sans-serif`
+  return truncateLines(
+    ctx,
+    wrapText(ctx, text, INTERPRETATION_MAX_WIDTH),
+    maxLines,
+    INTERPRETATION_MAX_WIDTH
+  )
+}
+
+function drawInterpretation(
+  ctx: CanvasRenderingContext2D,
+  result: TestResult,
+  y: number,
+  maxLines: number
+): { lines: string[]; bottomY: number } {
+  const lines = resolveInterpretationLines(ctx, result, maxLines)
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillStyle = 'rgba(26, 26, 46, 0.82)'
+  lines.forEach((line, index) => {
+    ctx.fillText(line, INTERPRETATION_X, y + index * INTERPRETATION_LINE_HEIGHT)
+  })
+  return { lines, bottomY: y + lines.length * INTERPRETATION_LINE_HEIGHT }
+}
+
+function resolveInterpretationMaxLines(
+  ctx: CanvasRenderingContext2D,
+  result: TestResult,
+  y: number
+): number {
+  const threeLineCount = resolveInterpretationLines(ctx, result, 3).length
+  const radarTopWithThreeLines = y + threeLineCount * INTERPRETATION_LINE_HEIGHT + RADAR_TOP_GAP
+  return radarTopWithThreeLines + MAX_RADAR_SIZE <= QR_TOP - RADAR_QR_GAP ? 3 : 2
+}
+
+function drawMiniRadar(
+  ctx: CanvasRenderingContext2D,
+  result: TestResult,
+  y: number,
+  size: number
+): void {
   ctx.save()
-  ctx.translate((WIDTH - 360) / 2, 720)
+  ctx.translate((WIDTH - size) / 2, y)
   drawRadar(
     ctx,
-    360,
+    size,
     {
       userValues: DIMENSIONS.map((dimension) => result.dimensionScores[dimension]),
       characterValues: characterRadarValues(result.main),
@@ -210,39 +350,12 @@ function drawMiniRadar(ctx: CanvasRenderingContext2D, result: TestResult): void 
   ctx.restore()
 }
 
-function drawTags(ctx: CanvasRenderingContext2D, result: TestResult): void {
-  ctx.font = 'bold 28px sans-serif'
-  ctx.textBaseline = 'top'
-  const gap = 24
-  let x = 0
-  const y = 1100
-  const tags = result.main.tags
-
-  if (tags.length === 0) {
-    ctx.fillStyle = 'rgba(26, 26, 46, 0.55)'
-    ctx.textAlign = 'center'
-    ctx.fillText('绝赞撰写中…', WIDTH / 2, y)
-    return
-  }
-
-  const firstLine = tags
-  const widths = firstLine.map((tag) => ctx.measureText(tag).width)
-  const totalWidth = widths.reduce((sum, width) => sum + width + gap * 2, 0) - gap
-  x = (WIDTH - totalWidth) / 2
-  ctx.textAlign = 'left'
-  for (let i = 0; i < firstLine.length; i += 1) {
-    ctx.fillStyle = ACCENT
-    ctx.fillText(firstLine[i], x + gap, y)
-    x += widths[i] + gap * 2
-  }
-}
-
 function drawBottomBar(ctx: CanvasRenderingContext2D, assets: PosterAssets): void {
-  const x = 80
-  const y = 1180
-  const size = 120
+  const x = QR_X
+  const y = QR_TOP
+  const size = QR_SIZE
 
-  ctx.fillStyle = '#FFFFFF'
+  ctx.fillStyle = WHITE
   ctx.fillRect(x, y, size, size)
   ctx.strokeStyle = INK
   ctx.lineWidth = 3
@@ -259,10 +372,10 @@ function drawBottomBar(ctx: CanvasRenderingContext2D, assets: PosterAssets): voi
   }
 
   ctx.fillStyle = INK
-  ctx.font = 'bold 34px sans-serif'
+  ctx.font = 'bold 28px sans-serif'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillText('长按识别 · 测测你的灵魂角色', x + size + 32, y + size / 2)
+  ctx.fillText('长按识别 · 测测你的灵魂角色', x + size + 28, y + size / 2)
 }
 
 export function drawPoster(
@@ -280,22 +393,25 @@ export function drawPoster(
   ctx.font = 'bold 32px sans-serif'
   ctx.textAlign = 'center'
   ctx.textBaseline = 'middle'
-  ctx.fillText('CBTI · 角色人格指标', WIDTH / 2, 48)
+  ctx.fillText('CBTI · 角色人格指标', WIDTH / 2, TITLE_Y)
 
-  drawPortrait(ctx, result, assets)
+  const bubbleBottom = drawQuoteBubble(ctx, result)
+  const portraitTop = bubbleBottom.bottomY + PORTRAIT_TOP_GAP
+  const portraitBottom = drawPortrait(ctx, result, assets, portraitTop)
 
-  ctx.fillStyle = INK
-  ctx.font = '900 64px sans-serif'
-  ctx.textAlign = 'center'
-  ctx.textBaseline = 'middle'
-  ctx.fillText(result.main.name, WIDTH / 2, 420)
+  const { sourceY } = drawNameAndSource(ctx, result, portraitBottom)
+  const tagsBottom = drawTags(ctx, result, sourceY + 30)
+  const interpretationTop = tagsBottom + 12
+  const interpretation = drawInterpretation(
+    ctx,
+    result,
+    interpretationTop,
+    resolveInterpretationMaxLines(ctx, result, interpretationTop)
+  )
 
-  ctx.fillStyle = 'rgba(26, 26, 46, 0.6)'
-  ctx.font = '24px sans-serif'
-  ctx.fillText(`${result.main.archetype} · ${result.main.source}`, WIDTH / 2, 480)
+  const radarTop = interpretation.bottomY + RADAR_TOP_GAP
+  const radarSize = resolveRadarSize(radarTop)
+  drawMiniRadar(ctx, result, radarTop, radarSize)
 
-  drawQuoteBubble(ctx, result)
-  drawMiniRadar(ctx, result)
-  drawTags(ctx, result)
   drawBottomBar(ctx, assets)
 }
