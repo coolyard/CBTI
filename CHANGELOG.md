@@ -1,5 +1,19 @@
 # Changelog
 
+## [1.1.0](https://github.com/coolyard/CBTI/compare/v1.0.0...v1.1.0) (2026-09-04)
+
+
+### Features
+
+* 微信端 UX 修复与海报重构 ([c12cad4](https://github.com/coolyard/CBTI/commit/c12cad451976a04efc323a1e871a7ad5f49ed71b))
+* 适配微信端安全区、海报重构与 UX 修复 ([4192c40](https://github.com/coolyard/CBTI/commit/4192c404b37f520cbf8e53f627bb142f8c674049))
+
+
+### Bug Fixes
+
+* 微信真机立绘加载与主包图片资产修复 ([ca21f9a](https://github.com/coolyard/CBTI/commit/ca21f9a29dd061622d411bbfc71249522d2cbe75))
+* 微信真机立绘加载与主包图片资产修复 ([d502a8e](https://github.com/coolyard/CBTI/commit/d502a8ea7d0ae182425c682b6097330bba266f7b))
+
 ## 1.0.0 (2026-09-04)
 
 
