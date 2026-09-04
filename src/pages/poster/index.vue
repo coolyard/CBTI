@@ -1,6 +1,9 @@
 <template>
-  <view class="page">
-    <text class="title font-display-cbti">分享海报</text>
+  <view class="page" :style="safeAreaStyle">
+    <view class="page-header">
+      <view v-if="result" class="back-link" @tap="goBackToResult">‹ 返回结果页</view>
+      <text class="title font-display-cbti">分享海报</text>
+    </view>
     <view class="poster-wrap">
       <canvas :id="canvasId" :canvas-id="canvasId" type="2d" class="poster-canvas" />
     </view>
@@ -16,6 +19,7 @@ import { useQuizStore } from '../../stores/quiz'
 import { characterPortraitPath } from '../../utils/character-asset'
 import { loadCanvasImage } from '../../utils/canvas-image'
 import { downloadH5PosterPng } from '../../utils/poster-export'
+import { getSafeAreaTopStyle } from '../../utils/safe-area'
 
 const QR_CODE_SRC = '/static/mp-code.png'
 const canvasId = 'poster-canvas'
@@ -29,6 +33,7 @@ interface PosterCanvasNode {
 }
 
 const quiz = useQuizStore()
+const safeAreaStyle = getSafeAreaTopStyle()
 const result = computed(() => quiz.result)
 let canvasNode: PosterCanvasNode | null = null
 let context: CanvasRenderingContext2D | null = null
@@ -133,6 +138,24 @@ function exportPoster(): void {
   // #endif
 }
 
+function goBackToResult(): void {
+  if (!result.value) {
+    uni.showToast({ title: '暂无结果数据，请先完成测试', icon: 'none' })
+    return
+  }
+
+  const pages = typeof getCurrentPages === 'function' ? getCurrentPages() : []
+  const previousRoute = pages.length > 1 ? String(pages[pages.length - 2]?.route ?? '') : ''
+  if (previousRoute === 'pages/result/index') {
+    uni.navigateBack({
+      delta: 1,
+      fail: () => uni.redirectTo({ url: '/pages/result/index' })
+    })
+    return
+  }
+  uni.redirectTo({ url: '/pages/result/index' })
+}
+
 function saveToAlbum(filePath: string): void {
   uni.saveImageToPhotosAlbum({
     filePath,
@@ -160,12 +183,33 @@ function saveToAlbum(filePath: string): void {
   flex-direction: column;
   align-items: center;
   gap: 32rpx;
-  padding: 48rpx 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  padding: var(--safe-top) 32rpx calc(env(safe-area-inset-bottom) + 32rpx);
   box-sizing: border-box;
   background-color: var(--cbti-bg);
 }
 
+.page-header {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 24rpx;
+}
+
+.back-link {
+  display: flex;
+  flex: none;
+  min-height: 56rpx;
+  align-items: center;
+  padding: 8rpx 0;
+  font-size: 26rpx;
+  font-weight: 800;
+  line-height: 1.2;
+  text-decoration: underline;
+}
+
 .title {
+  flex: 1;
+  text-align: center;
   font-size: 40rpx;
   font-weight: 800;
 }

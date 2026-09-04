@@ -1,6 +1,6 @@
 <template>
-  <view class="page">
-    <view class="scanner border-[6rpx] border-solid border-cbti-ink bg-cbti-white">
+  <view class="page" :style="safeAreaStyle">
+    <view class="scanner border-solid border-cbti-ink bg-cbti-white">
       <view class="scanner__line bg-cbti-primary"></view>
       <view class="scanner__dot bg-cbti-accent"></view>
     </view>
@@ -13,6 +13,7 @@ import { ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import { getLoadingSentences } from '../../core/loading'
 import { useQuizStore } from '../../stores/quiz'
+import { getSafeAreaTopStyle } from '../../utils/safe-area'
 
 const TYPE_DELAY_MS = 40
 const SENTENCE_PAUSE_MS = 400
@@ -20,6 +21,7 @@ const MIN_TOTAL_MS = 2200
 const FORCE_REDIRECT_MS = 5000
 
 const quiz = useQuizStore()
+const safeAreaStyle = getSafeAreaTopStyle()
 const visibleText = ref('')
 let startedAt = 0
 let disposed = false
@@ -110,7 +112,7 @@ function goResult(): void {
   align-items: center;
   justify-content: center;
   gap: 48rpx;
-  padding: 48rpx 32rpx;
+  padding: var(--safe-top) 32rpx calc(env(safe-area-inset-bottom) + 48rpx);
   box-sizing: border-box;
   background-color: var(--cbti-bg);
 }
@@ -119,6 +121,7 @@ function goResult(): void {
   position: relative;
   width: 280rpx;
   height: 280rpx;
+  border-width: 6rpx;
   border-radius: 50%;
   overflow: hidden;
 }

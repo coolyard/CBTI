@@ -29,6 +29,8 @@ const props = defineProps<{
   animate?: boolean
 }>()
 
+const currentInstance = getCurrentInstance()
+
 interface RadarCanvasNode {
   width: number
   height: number
@@ -130,10 +132,9 @@ function isCanvasNode(value: unknown): value is RadarCanvasNode {
 
 function measureParentWidth(): Promise<void> {
   return new Promise((resolve) => {
-    const instance = getCurrentInstance()
     uni
       .createSelectorQuery()
-      .in(instance?.proxy)
+      .in(currentInstance?.proxy)
       .select('.radar-chart')
       .boundingClientRect((rect) => {
         const node = Array.isArray(rect) ? rect[0] : rect
@@ -153,10 +154,9 @@ async function initCanvas(): Promise<void> {
     initRetryTimer = null
   }
 
-  const instance = getCurrentInstance()
   uni
     .createSelectorQuery()
-    .in(instance?.proxy)
+    .in(currentInstance?.proxy)
     .select(`#${canvasId}`)
     .fields({ node: true, size: true }, () => undefined)
     .exec((res) => {
