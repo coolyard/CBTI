@@ -62,7 +62,10 @@ CBTI/
     ├── components/             # 自研组件（RadarChart 等）
     ├── pages/                  # home / quiz / loading / result / poster
     ├── utils/                  # canvas、平台判断等
-    └── static/                 # 静态资源（小程序码占位图等）
+    ├── pkg-characters/characters/ # H5 640 母版（MP 不引用，避免分包隔离）
+    └── static/
+        ├── characters/         # MP 448 JPG 主包立绘
+        └── ...                 # 静态资源（小程序码占位图等）
 ```
 
 ## 3. 命名规范
@@ -109,7 +112,7 @@ pnpm format          # Prettier 格式化
 | 分享 | 复制链接 + 下载海报图 | `onShareAppMessage` + 保存海报到相册 | 见 specs/50-pages/poster.md |
 | 海报二维码 | 静态小程序码图片 | 同左 | MVP 不做动态码，见 specs/80 |
 | 计数器 | 不展示真实数字 | 同左 | MVP 砍掉，见 specs/50-pages/home.md |
-| 立绘体积 | 本地 WebP | CDN 或分包 | 主包 ≤ 2MB，见 specs/80 |
+| 立绘体积 | H5 640 WebP / MP 448 JPG | 本地 WebP/JPG | MP 主包 ≤ 2MB，见 specs/80 |
 
 ## 7. 设计令牌单一来源
 

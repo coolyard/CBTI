@@ -15,7 +15,7 @@
 | 背景 | 全幅 | paper 底色 + 四角 ink 波点装饰（CSS 圆点阵画进 canvas） |
 | 顶部品牌条 | y 52，居中 | `CBTI · 角色人格指标`，ink，32px bold |
 | 台词气泡 | y 68 起，宽 620 居中 | 白底 3px ink 圆角贴纸风 + 朝下尾巴；quote 最多 2 行，quoteExtra 1 行 |
-| 完整立绘 | 居中，520×520 | `char-XX-{gender}.webp` 640 源图**全幅等比绘制**，不裁切头部；缺失时首字符 + 轮换底色占位 |
+| 完整立绘 | 居中，520×520 | `characterPortraitPath()`（H5 640 WebP / MP 448 JPG）**全幅等比绘制**，不裁切头部；缺失时首字符 + 轮换底色占位 |
 | 角色名 | 立绘下方居中 | Display 级 56px/900，ink |
 | 灵魂原型 + 出处 | 角色名下方居中 | caption，ink @ 60% |
 | 灵魂标签 | 居中单行 | `#xxx` × 3–5，accent 色 |

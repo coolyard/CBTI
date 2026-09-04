@@ -17,7 +17,7 @@
           class="identity__portrait-image"
           :src="characterPortraitPath(mainId)"
           mode="aspectFit"
-          @error="handleMainPortraitError"
+          @error="handleMainPortraitError($event)"
         />
         <view v-else class="identity__portrait-placeholder" :class="homePlaceholderClass(0)">
           <text class="identity__portrait-placeholder-text">{{ mainName.charAt(0) }}</text>
@@ -100,9 +100,10 @@
           <image
             v-if="!portraitErrors[relative.id]"
             class="relative-card__portrait-image"
-            :src="characterHeadPath(relative.id)"
+            :src="characterPortraitPath(relative.id)"
+            :style="headCropStyle"
             mode="aspectFill"
-            @error="handlePortraitError(relative.id)"
+            @error="handlePortraitError(relative.id, $event)"
           />
         </view>
         <view class="relative-card__info">
@@ -170,12 +171,21 @@ import { dominantDimensionOf } from '../../core/dominant-dimension'
 import { homePlaceholderClass } from '../../core/home'
 import { useQuizStore } from '../../stores/quiz'
 import { DIMENSIONS, DIMENSION_LABELS } from '../../types'
-import { characterHeadPath, characterPortraitPath } from '../../utils/character-asset'
+import { characterPortraitPath } from '../../utils/character-asset'
+import { getHeadCropLayout } from '../../utils/head-crop'
+import { logImageEnvironment, reportImageError } from '../../utils/image-diagnostic'
 import { getSafeAreaTopStyle } from '../../utils/safe-area'
 import { copyShareLink, createShareMessage } from '../../utils/share'
 
 const quiz = useQuizStore()
 const safeAreaStyle = getSafeAreaTopStyle()
+const headCropLayout = getHeadCropLayout()
+const headCropStyle = {
+  width: `${headCropLayout.scale * 100}%`,
+  height: `${headCropLayout.scale * 100}%`,
+  left: `${headCropLayout.x}%`,
+  top: `${headCropLayout.y}%`
+}
 const result = computed(() => quiz.result)
 
 const RESULT_STICKER_SPOTS = [
@@ -234,6 +244,7 @@ const canSwitchPool = computed(() => Boolean(result.value && !result.value.easte
 const switchLabel = computed(() => (quiz.switchedPool ? '切回原版' : '切换对照池'))
 
 onLoad(() => {
+  logImageEnvironment()
   quiz.restore()
   if (!quiz.result && quiz.isComplete) {
     quiz.finalize()
@@ -273,12 +284,14 @@ function closeRelativeModal(): void {
   relativeModalOpen.value = false
 }
 
-function handlePortraitError(id: string): void {
+function handlePortraitError(id: string, event: unknown): void {
   portraitErrors.value[id] = true
+  reportImageError(`result-relative-${id}`, event)
 }
 
-function handleMainPortraitError(): void {
+function handleMainPortraitError(event: unknown): void {
   mainPortraitError.value = true
+  reportImageError(`result-main-${mainId.value}`, event)
 }
 
 async function handleCopyShare(): Promise<void> {
@@ -342,10 +355,7 @@ async function handleCopyShare(): Promise<void> {
 
 .relative-card__portrait-image {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
+  display: block;
 }
 
 .identity__bubble {
