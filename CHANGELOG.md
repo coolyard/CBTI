@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.2.0](https://github.com/coolyard/CBTI/compare/v1.1.0...v1.2.0) (2026-09-10)
+
+
+### Features
+
+* CBTI v5 性别双卷题库与答题体验 ([f4881ae](https://github.com/coolyard/CBTI/commit/f4881aea3f01b0a8a2e5d4f1bc086168f8a70a04))
+* 重构 v5 性别双卷题库与答题体验 ([e3e7b99](https://github.com/coolyard/CBTI/commit/e3e7b99329c61c33186ae07a523d13e4e6815758))
+* 重构 v5 性别双卷题库与答题体验 ([fb174a8](https://github.com/coolyard/CBTI/commit/fb174a8ee64443c346e4aa3d7d785742f90ff981))
+
 ## [1.1.0](https://github.com/coolyard/CBTI/compare/v1.0.0...v1.1.0) (2026-09-04)
 
 
