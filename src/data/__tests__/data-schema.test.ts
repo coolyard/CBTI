@@ -1,111 +1,102 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORIES, categories, characters, themeSplitQuestion } from '../index'
+import { BANKS, banks, characters, genderSplitQuestion } from '../index'
+import { DIM_TOTAL_MAX, DIM_TOTAL_MIN, DIMENSION_THRESHOLDS, MATCH_LUT } from '../match-lut'
 import {
-  EASTER_GRID_LOCKS,
+  DIMENSIONS_BY_QUESTION,
+  EASTER_SEED_COUNTS,
   OPTIONS_PER_QUESTION,
-  PAIR_SKELETON_SHORT,
-  QUESTION_COUNT
+  QUESTION_COUNT,
+  SCORE_VALUES
 } from '../questions.spec'
-import type { Category } from '../../types'
 
-const DIM_SHORT: Record<string, string> = {
-  presence: 'A',
-  cognition: 'B',
-  emotion: 'C',
-  order: 'D',
-  endurance: 'E'
-}
-
-const GRID_LIST = [
-  [10, 2],
-  [10, 9],
-  [5, 2],
-  [5, 9],
-  [1, 2],
-  [1, 9]
-]
-
-describe('v4.0 题库形状', () => {
-  it('Q1 分流题 6 选项且覆盖 6 类别', () => {
-    expect(themeSplitQuestion.options).toHaveLength(6)
-    const route = themeSplitQuestion.options.map((o) => o.targetCategory)
-    expect(new Set(route).size).toBe(6)
-    expect(themeSplitQuestion.options.map((o) => o.key)).toEqual(['A', 'B', 'C', 'D', 'E', 'F'])
+describe('v5 题库形状', () => {
+  it('Q0 性别分流题只有 A/B 两个选项', () => {
+    expect(genderSplitQuestion.options).toHaveLength(2)
+    expect(genderSplitQuestion.options.map((option) => option.key)).toEqual(['A', 'B'])
+    expect(genderSplitQuestion.options.map((option) => option.targetPool)).toEqual([
+      'male',
+      'female'
+    ])
   })
 
-  it.each(categories.map((c) => [c.id, c] as const))('%s 恰好 15 题 × 6 选项', (_id, category) => {
-    expect(category.questions).toHaveLength(QUESTION_COUNT)
-    for (const question of category.questions) {
-      expect(question.options).toHaveLength(OPTIONS_PER_QUESTION)
-      expect(question.options.map((o) => o.key)).toEqual(['A', 'B', 'C', 'D', 'E', 'F'])
-      expect(question.stem.length).toBeLessThanOrEqual(50)
-      for (const option of question.options) {
-        expect(option.text.length).toBeLessThanOrEqual(40)
+  it.each(banks.map((bank) => [bank.id, bank] as const))(
+    '%s 卷恰好 15 题 × 4 选项',
+    (_id, bank) => {
+      expect(bank.questions).toHaveLength(QUESTION_COUNT)
+      for (const question of bank.questions) {
+        expect(question.options).toHaveLength(OPTIONS_PER_QUESTION)
+        expect(question.options.map((option) => option.key)).toEqual(['A', 'B', 'C', 'D'])
+        expect(question.options.map((option) => option.score).sort()).toEqual([0, 3, 7, 9])
       }
     }
-  })
+  )
 
-  it('每类 pair 序列与统一骨架一致', () => {
-    for (const category of categories) {
-      const skeleton = category.questions.map(
-        (q) => `${DIM_SHORT[q.pair[0]]}${DIM_SHORT[q.pair[1]]}`
-      )
-      expect(skeleton).toEqual([...PAIR_SKELETON_SHORT])
+  it('每卷维度顺序为 A/B/C/D/E 各三题', () => {
+    for (const bank of banks) {
+      expect(bank.questions.map((question) => question.dimension)).toEqual([
+        ...DIMENSIONS_BY_QUESTION
+      ])
     }
   })
 
-  it('每题 6 选项覆盖 3×2 网格全部分值位', () => {
-    for (const category of categories) {
-      for (const question of category.questions) {
-        const grid = question.options.map((option) => {
-          const scores = option.scores
-          if (!scores) throw new Error(`题 ${question.id} 缺 scores`)
-          return [scores[question.pair[0]], scores[question.pair[1]]] as number[]
-        })
-        for (const cell of GRID_LIST) {
-          expect(grid).toContainEqual(cell)
-        }
-      }
-    }
+  it('分值只允许 0/3/7/9', () => {
+    const scores = banks.flatMap((bank) =>
+      bank.questions.flatMap((question) => question.options.map((option) => option.score))
+    )
+    for (const score of scores) expect(SCORE_VALUES).toContain(score)
   })
 })
 
-describe('v4.0 彩蛋与角色库', () => {
-  it.each([
-    ['male', ['xiuxian', 'jianghu', 'rexue'], ['nezha', 'wukong']],
-    ['female', ['mori', 'gongting', 'dushi'], ['jingwei', 'nuwa']]
-  ] as const)('%s 池彩蛋种子与锁定网格一致', (_pool, ids, tags) => {
-    for (const id of ids) {
-      const category = CATEGORIES[id as Category]
-      for (const tag of tags) {
-        const rule = EASTER_GRID_LOCKS.find((item) => item.tag === tag)
-        expect(rule).toBeDefined()
-        for (const questionIndex of [6, 10]) {
-          const question = category.questions[questionIndex]
-          const seedOptions = question.options.filter((o) => o.seedTag === tag)
-          expect(seedOptions).toHaveLength(1)
-          const option = seedOptions[0]
-          const grid = [option.scores?.[question.pair[0]], option.scores?.[question.pair[1]]]
-          const expectedGrid = questionIndex === 6 ? rule?.q7Grid : rule?.q11Grid
-          const actualGrid = GRID_LIST.findIndex(
-            (cell) => cell[0] === grid[0] && cell[1] === grid[1]
-          )
-          expect(actualGrid).toBe((expectedGrid ?? 0) - 1)
-        }
+describe('v5 彩蛋与角色库', () => {
+  it('男卷只埋 wukong，女卷只埋 nezha', () => {
+    expect(
+      BANKS.male.questions.flatMap((question) => question.options).filter((o) => o.seedTag)
+    ).toHaveLength(EASTER_SEED_COUNTS.male.wukong)
+    expect(
+      BANKS.female.questions.flatMap((question) => question.options).filter((o) => o.seedTag)
+    ).toHaveLength(EASTER_SEED_COUNTS.female.nezha)
+
+    expect(
+      BANKS.male.questions
+        .flatMap((question) => question.options)
+        .every((option) => !option.seedTag || option.seedTag === 'wukong')
+    ).toBe(true)
+    expect(
+      BANKS.female.questions
+        .flatMap((question) => question.options)
+        .every((option) => !option.seedTag || option.seedTag === 'nezha')
+    ).toBe(true)
+  })
+
+  it('角色库恰好 54 条且隐藏角色为 27-f / 28-m', () => {
+    expect(characters).toHaveLength(54)
+    expect(new Set(characters.map((character) => character.id)).size).toBe(54)
+    expect(
+      characters.filter((character) => character.easterKey).map((character) => character.id)
+    ).toEqual(['27-f', '28-m'])
+  })
+})
+
+describe('v5 LUT 与阈值', () => {
+  it('两类池各覆盖 243 个模式串且不指向彩蛋角色', () => {
+    for (const pool of ['male', 'female'] as const) {
+      const entries = Object.entries(MATCH_LUT[pool])
+      expect(entries).toHaveLength(243)
+      for (const [pattern, characterId] of entries) {
+        expect(pattern).toMatch(/^[HML](-[HML]){4}$/)
+        const character = characters.find((item) => item.id === characterId)
+        expect(character, `${pattern} 指向不存在的 ${characterId}`).toBeDefined()
+        expect(character?.gender).toBe(pool)
+        expect(character?.easterKey).toBeUndefined()
       }
     }
   })
 
-  it('角色库恰好 56 条且常规池模式串唯一', () => {
-    expect(characters).toHaveLength(56)
-    expect(new Set(characters.map((c) => c.id)).size).toBe(56)
-    for (const pool of ['male', 'female'] as const) {
-      const regularPatterns = characters
-        .filter((c) => c.gender === pool && !c.easterKey)
-        .map((c) => c.pattern)
-      expect(new Set(regularPatterns).size).toBe(26)
+  it('阈值固定为 L 0-9 / M 10-18 / H 19-27', () => {
+    for (const thresholds of Object.values(DIMENSION_THRESHOLDS)) {
+      expect(thresholds).toEqual({ lowMax: 9, highMin: 19 })
     }
-    const hidden = characters.filter((c) => c.easterKey)
-    expect(hidden.map((c) => c.id).sort()).toEqual(['27-m', '28-m', '29-f', '30-f'])
+    for (const minimum of Object.values(DIM_TOTAL_MIN)) expect(minimum).toBe(0)
+    for (const maximum of Object.values(DIM_TOTAL_MAX)) expect(maximum).toBe(27)
   })
 })

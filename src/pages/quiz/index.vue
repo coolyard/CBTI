@@ -2,11 +2,11 @@
   <view class="page" :data-theme="currentDimension" :style="safeAreaStyle">
     <BackgroundDecor />
 
-    <!-- 第 1 屏：题材分流 -->
-    <template v-if="!quiz.q1Choice">
+    <!-- 第 1 屏：性别分流 -->
+    <template v-if="!quiz.q0Choice">
       <view class="progress">
         <view class="progress__heading">
-          <text class="progress__title">选择你的穿越世界</text>
+          <text class="progress__title">选择你的戏服</text>
           <text class="progress__count">{{ displayedScreenNumber }}/{{ totalScreenCount }}</text>
         </view>
         <view class="progress__track">
@@ -15,22 +15,26 @@
       </view>
       <view class="theme-screen">
         <view class="card-sticker question-card">
-          <text class="question-card__stem">{{ themeSplitQuestion.stem }}</text>
+          <text class="question-card__stem">{{ genderSplitQuestion.stem }}</text>
         </view>
-        <view class="world-grid">
+        <view class="gender-grid">
           <view
-            v-for="entry in themeWorlds"
+            v-for="entry in genderChoices"
             :key="entry.key"
-            class="card-sticker world-card anim-pop-in"
+            class="card-sticker gender-card anim-pop-in"
             :style="{ animationDelay: entry.delay }"
-            @tap="handleChooseQ1(entry.key)"
+            @tap="handleChooseQ0(entry.key)"
           >
-            <view class="world-card__top">
-              <view class="world-card__badge bg-cbti-ink text-cbti-white">{{ entry.key }}</view>
-              <text class="world-card__emoji">{{ entry.emoji }}</text>
+            <view class="gender-card__top">
+              <view class="gender-card__badge bg-cbti-ink text-cbti-white">{{ entry.key }}</view>
+              <text class="gender-card__emoji">{{ entry.emoji }}</text>
             </view>
-            <text class="world-card__title">{{ entry.title }}</text>
-            <text class="world-card__tagline">{{ entry.tagline }}</text>
+            <text class="gender-card__title">{{ entry.title }}</text>
+            <text class="gender-card__tagline"
+              >{{ entry.taglineBefore
+              }}<text class="gender-card__tagline-emphasis">{{ entry.taglineHighlight }}</text
+              >{{ entry.taglineAfter }}</text
+            >
           </view>
         </view>
         <view class="sticker-row">
@@ -118,8 +122,8 @@
     </template>
 
     <view class="quiz-footer">
-      <text v-if="quiz.q1Choice && currentIndex >= 0" class="back-link" @tap="goBack">
-        {{ currentIndex > 0 ? '上一题' : '重选世界' }}
+      <text v-if="quiz.q0Choice && currentIndex >= 0" class="back-link" @tap="goBack">
+        {{ currentIndex > 0 ? '上一题' : '重选戏服' }}
       </text>
     </view>
   </view>
@@ -129,22 +133,18 @@
 import { computed, ref } from 'vue'
 import { onLoad, onUnload } from '@dcloudio/uni-app'
 import BackgroundDecor from '../../components/background/BackgroundDecor.vue'
-import { CATEGORIES, themeSplitQuestion } from '../../data'
+import { genderSplitQuestion } from '../../data'
 import { useQuizStore } from '../../stores/quiz'
 import { decorAssetUrl, type DecorName } from '../../utils/decor'
 import { logImageEnvironment, reportImageError } from '../../utils/image-diagnostic'
 import { getSafeAreaTopStyle } from '../../utils/safe-area'
-import type { Category, Dimension, OptionKey } from '../../types'
+import type { Dimension, OptionKey } from '../../types'
 
 const totalScreenCount = 16
 
-const THEME_EMOJIS: Record<OptionKey, string> = {
-  A: '⚔️',
-  B: '🏯',
-  C: '🏀',
-  D: '🧟',
-  E: '🏮',
-  F: '💼'
+const GENDER_EMOJIS: Record<'A' | 'B', string> = {
+  A: '🎭',
+  B: '🪭'
 }
 
 const quiz = useQuizStore()
@@ -154,36 +154,41 @@ const currentIndex = ref(0)
 let advanceTimer: ReturnType<typeof setTimeout> | null = null
 
 const topStickerRow: Array<{ name: DecorName; size: string; delay: string }> = [
-  { name: 'question', size: '96rpx', delay: '0s' },
-  { name: 'think', size: '108rpx', delay: '0.4s' },
-  { name: 'target', size: '120rpx', delay: '0.8s' }
+  { name: 'question', size: '48rpx', delay: '0s' },
+  { name: 'think', size: '54rpx', delay: '0.4s' },
+  { name: 'target', size: '60rpx', delay: '0.8s' }
 ]
 
 const bottomStickerRow: Array<{ name: DecorName; size: string; delay: string }> = [
-  { name: 'bulb', size: '108rpx', delay: '0.2s' },
-  { name: 'pencil', size: '96rpx', delay: '0.6s' },
-  { name: 'sweat', size: '120rpx', delay: '1s' }
+  { name: 'bulb', size: '54rpx', delay: '0.2s' },
+  { name: 'pencil', size: '48rpx', delay: '0.6s' },
+  { name: 'sweat', size: '60rpx', delay: '1s' }
 ]
 
-const themeWorlds = computed(() =>
-  themeSplitQuestion.options.map((option, index) => {
-    const categoryId = option.targetCategory
+const genderChoices = computed(() =>
+  genderSplitQuestion.options.map((option, index) => {
+    const highlight = option.key === 'A' ? '这位公子' : '这位姑娘'
+    const highlightIndex = option.text.indexOf(highlight)
+    const before = highlightIndex >= 0 ? option.text.slice(0, highlightIndex) : option.text
+    const after = highlightIndex >= 0 ? option.text.slice(highlightIndex + highlight.length) : ''
     return {
       key: option.key,
-      title: categoryId ? CATEGORIES[categoryId as Category].name : option.key,
-      tagline: option.text,
-      emoji: THEME_EMOJIS[option.key],
+      title: option.key === 'A' ? '玄色长衫' : '织锦罗裙',
+      taglineBefore: before,
+      taglineHighlight: highlight,
+      taglineAfter: after,
+      emoji: GENDER_EMOJIS[option.key as 'A' | 'B'],
       delay: `${index * 40}ms`
     }
   })
 )
 
 const currentDimension = computed<Dimension>(
-  () => questions.value[currentIndex.value]?.pair[0] ?? 'presence'
+  () => questions.value[currentIndex.value]?.dimension ?? 'presence'
 )
 
 const displayedScreenNumber = computed(() => {
-  if (!quiz.q1Choice) return 1
+  if (!quiz.q0Choice) return 1
   return Math.min(currentIndex.value + 2, totalScreenCount)
 })
 
@@ -202,8 +207,9 @@ onUnload(() => {
   if (advanceTimer) clearTimeout(advanceTimer)
 })
 
-function handleChooseQ1(key: OptionKey): void {
-  quiz.chooseQ1(key)
+function handleChooseQ0(key: OptionKey): void {
+  if (key !== 'A' && key !== 'B') return
+  quiz.chooseQ0(key)
   currentIndex.value = 0
 }
 
@@ -242,7 +248,7 @@ function goBack(): void {
     currentIndex.value -= 1
     return
   }
-  quiz.resetQ1()
+  quiz.resetQ0()
   currentIndex.value = 0
 }
 
@@ -332,7 +338,7 @@ function finishQuiz(): void {
   flex: none;
   align-items: center;
   justify-content: space-between;
-  height: 112rpx;
+  height: 64rpx;
   padding: 0 16rpx;
   pointer-events: none;
 }
@@ -352,66 +358,67 @@ function finishQuiz(): void {
   height: 100%;
 }
 
-.world-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 20rpx;
-  flex: 1;
-  min-height: 0;
+.gender-grid {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
-.world-card {
+.gender-card {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
-  gap: 6rpx;
-  min-height: 0;
-  padding: 16rpx 14rpx;
+  gap: 10rpx;
+  padding: 20rpx 18rpx;
   overflow: hidden;
 }
 
-.world-card__top {
+.gender-card__top {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: space-between;
 }
 
-.world-card__badge {
+.gender-card__badge {
   display: flex;
   flex: none;
   align-items: center;
   justify-content: center;
-  width: 48rpx;
-  height: 48rpx;
+  width: 44rpx;
+  height: 44rpx;
   border-radius: 12rpx;
   font-size: 24rpx;
   font-weight: 800;
 }
 
-.world-card__emoji {
-  font-size: 44rpx;
+.gender-card__emoji {
+  font-size: 40rpx;
   line-height: 1;
 }
 
-.world-card__title {
+.gender-card__title {
   display: block;
   overflow: hidden;
-  font-size: 32rpx;
+  font-size: 34rpx;
   font-weight: 700;
   line-height: 1.3;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.world-card__tagline {
+.gender-card__tagline {
   display: block;
   overflow-wrap: anywhere;
   word-break: break-all;
-  font-size: 26rpx;
-  line-height: 1.4;
+  font-size: 28rpx;
+  line-height: 1.5;
   color: rgba(26, 26, 46, 0.72);
+}
+
+.gender-card__tagline-emphasis {
+  font-weight: 800;
+  color: #1a1a2e;
 }
 
 .question-card {
@@ -432,23 +439,19 @@ function finishQuiz(): void {
 }
 
 .options {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
-  gap: 20rpx;
-  flex: 1;
-  min-height: 0;
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .option {
   display: flex;
   align-items: flex-start;
-  justify-content: center;
-  flex-direction: column;
-  gap: 8rpx;
+  flex-direction: row;
+  gap: 16rpx;
   width: 100%;
-  min-height: 0;
-  padding: 14rpx 16rpx;
+  padding: 20rpx;
   border-width: 2px;
   border-radius: 24rpx;
   box-sizing: border-box;
@@ -475,8 +478,8 @@ function finishQuiz(): void {
   flex: 1;
   overflow-wrap: anywhere;
   word-break: break-all;
-  font-size: 28rpx;
-  line-height: 1.45;
+  font-size: 32rpx;
+  line-height: 1.5;
 }
 
 .option--selected .option__text {

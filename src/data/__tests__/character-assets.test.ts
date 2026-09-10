@@ -5,8 +5,8 @@ import { characters } from '../index'
 import { characterPortraitFileName } from '../../utils/character-asset'
 
 describe('立绘资产清单', () => {
-  it('56 张 MP JPG 主包立绘存在且总量在主包预算内', () => {
-    expect(characters).toHaveLength(56)
+  it('54 张 MP JPG 主包立绘存在且总量在主包预算内', () => {
+    expect(characters).toHaveLength(54)
     let totalBytes = 0
     for (const character of characters) {
       const fileName = characterPortraitFileName(character.id, 'jpg')
@@ -17,7 +17,7 @@ describe('立绘资产清单', () => {
     expect(totalBytes).toBeLessThanOrEqual(2 * 1024 * 1024)
   })
 
-  it('56 张 640 母版保留给 H5 使用', () => {
+  it('54 张 640 母版保留给 H5 使用', () => {
     for (const character of characters) {
       const fileName = characterPortraitFileName(character.id, 'webp')
       const filePath = resolve(process.cwd(), 'src/pkg-characters/characters', fileName)

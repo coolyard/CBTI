@@ -1,29 +1,35 @@
 import { describe, expect, it } from 'vitest'
-import { CATEGORIES, characters } from '../../data'
-import type { CategoryMeta, Character, OptionKey, Question, ScoringAnswers } from '../../types'
+import { BANKS, characters } from '../../data'
+import type { Character, OptionKey, QuestionBank, ScoringAnswers } from '../../types'
 import { resolveEasterLock } from '../easter'
 import { computeResult, IncompleteAnswersError } from '../engine'
 import { matchByLut, matchRelative, manhattan, patternToBands } from '../matcher'
 import { bandFromTotal, CHARACTER_ANCHOR, patternFromBands } from '../scoring'
 
-const ANSWER_KEYS: OptionKey[] = ['A', 'B', 'C', 'D', 'E', 'F']
+const ANSWER_KEYS: OptionKey[] = ['A', 'B', 'C', 'D']
 
 function allA(): ScoringAnswers {
   return Array.from({ length: 15 }, () => 'A')
 }
 
-function seedAnswerKeys(category: CategoryMeta, tag: string): { q7: OptionKey; q11: OptionKey } {
-  const q7 = category.questions.find((q) => q.id === 7)?.options.find((o) => o.seedTag === tag)
-  const q11 = category.questions.find((q) => q.id === 11)?.options.find((o) => o.seedTag === tag)
-  if (!q7 || !q11) throw new Error(`找不到 ${tag} 种子`)
-  return { q7: q7.key, q11: q11.key }
+function answersWithoutSeeds(bank: QuestionBank): ScoringAnswers {
+  return bank.questions.map((question) => {
+    const option = question.options.find((candidate) => !candidate.seedTag)
+    if (!option) throw new Error(`题 ${question.id} 没有非种子选项`)
+    return option.key
+  })
 }
 
-function lockAnswers(category: CategoryMeta, tag: string): ScoringAnswers {
-  const answers = allA()
-  const keys = seedAnswerKeys(category, tag)
-  answers[6] = keys.q7
-  answers[10] = keys.q11
+function answersWithSeeds(bank: QuestionBank, count: number): ScoringAnswers {
+  const answers = answersWithoutSeeds(bank)
+  let remaining = count
+  bank.questions.forEach((question, index) => {
+    if (remaining === 0) return
+    const seedOption = question.options.find((option) => option.seedTag)
+    if (!seedOption) return
+    answers[index] = seedOption.key
+    remaining -= 1
+  })
   return answers
 }
 
@@ -45,28 +51,21 @@ function makeCharacter(archetypeId: number, pattern: string): Character {
   }
 }
 
-describe('v4.0 分维阈值边界', () => {
+describe('v5 分维阈值边界', () => {
   it.each([
-    ['presence', 28, 'L'],
-    ['presence', 29, 'M'],
-    ['presence', 35, 'M'],
-    ['presence', 36, 'H'],
-    ['cognition', 28, 'L'],
-    ['cognition', 29, 'M'],
-    ['cognition', 36, 'M'],
-    ['cognition', 37, 'H'],
-    ['emotion', 29, 'L'],
-    ['emotion', 30, 'M'],
-    ['emotion', 35, 'M'],
-    ['emotion', 36, 'H'],
-    ['order', 28, 'L'],
-    ['order', 29, 'M'],
-    ['order', 36, 'M'],
-    ['order', 37, 'H'],
-    ['endurance', 26, 'L'],
-    ['endurance', 27, 'M'],
-    ['endurance', 39, 'M'],
-    ['endurance', 40, 'H']
+    ['presence', 9, 'L'],
+    ['presence', 10, 'M'],
+    ['presence', 18, 'M'],
+    ['presence', 19, 'H'],
+    ['presence', 27, 'H'],
+    ['cognition', 3, 'L'],
+    ['cognition', 19, 'H'],
+    ['emotion', 9, 'L'],
+    ['emotion', 10, 'M'],
+    ['order', 18, 'M'],
+    ['order', 19, 'H'],
+    ['endurance', 0, 'L'],
+    ['endurance', 27, 'H']
   ] as const)('%s total=%s → %s', (dimension, total, expected) => {
     expect(bandFromTotal(total, dimension)).toBe(expected)
   })
@@ -74,9 +73,8 @@ describe('v4.0 分维阈值边界', () => {
 
 describe('LUT 与灵魂近亲', () => {
   it('同输入同输出且主结果不是彩蛋角色', () => {
-    const category = CATEGORIES.xiuxian
-    const first = computeResult(category, allA(), characters)
-    const second = computeResult(category, allA(), characters)
+    const first = computeResult(BANKS.male, allA(), characters)
+    const second = computeResult(BANKS.male, allA(), characters)
     expect(first.main.id).toBe(second.main.id)
     expect(first.easterLocked).toBe(false)
     expect(first.main.easterKey).toBeUndefined()
@@ -91,58 +89,39 @@ describe('LUT 与灵魂近亲', () => {
   })
 })
 
-describe('v4.0 彩蛋双题锁定', () => {
+describe('v5 累计种子彩蛋', () => {
   it.each([
-    ['xiuxian', 'nezha', '27-m'],
-    ['xiuxian', 'wukong', '28-m'],
-    ['mori', 'jingwei', '29-f'],
-    ['mori', 'nuwa', '30-f']
-  ] as const)('%s %s 双题命中锁定 %s', (categoryId, tag, expectedId) => {
-    const category = CATEGORIES[categoryId]
-    const answers = lockAnswers(category, tag)
-    expect(resolveEasterLock(category.questions, answers, category.pool)).toBe(tag)
-    const result = computeResult(category, answers, characters)
+    ['male', 'wukong', '28-m'],
+    ['female', 'nezha', '27-f']
+  ] as const)('%s 卷命中 3 个 %s 种子锁定 %s', (pool, tag, expectedId) => {
+    const bank = BANKS[pool]
+    const two = answersWithSeeds(bank, 2)
+    expect(resolveEasterLock(bank.questions, two, pool)).toBeNull()
+    expect(computeResult(bank, two, characters).easterLocked).toBe(false)
+
+    const three = answersWithSeeds(bank, 3)
+    expect(resolveEasterLock(bank.questions, three, pool)).toBe(tag)
+    const result = computeResult(bank, three, characters)
     expect(result.easterLocked).toBe(true)
     expect(result.main.id).toBe(expectedId)
   })
 
-  it('单题命中不触发', () => {
-    const category = CATEGORIES.xiuxian
-    const answers = lockAnswers(category, 'nezha')
-    answers[10] = 'A'
-    expect(resolveEasterLock(category.questions, answers, category.pool)).toBeNull()
-    expect(computeResult(category, answers, characters).easterLocked).toBe(false)
-  })
-
   it('跨池种子不触发', () => {
-    const category = CATEGORIES.xiuxian
-    const overridden = {
-      ...category,
-      questions: category.questions.map((q) => ({
-        ...q,
-        options: q.options.map((o): Question['options'][number] =>
-          o.seedTag ? { ...o, seedTag: 'jingwei' as const } : o
-        ) as Question['options']
-      }))
-    } satisfies CategoryMeta
-    const answers = lockAnswers(category, 'nezha')
-    expect(resolveEasterLock(overridden.questions, answers, 'male')).toBeNull()
-    expect(computeResult(overridden, answers, characters).easterLocked).toBe(false)
+    const answers = answersWithSeeds(BANKS.female, 3)
+    expect(resolveEasterLock(BANKS.female.questions, answers, 'male')).toBeNull()
   })
 })
 
 describe('真实题库跑通', () => {
-  it('6 类别全选 A 均可算出合法结果', () => {
-    for (const category of Object.values(CATEGORIES)) {
-      const result = computeResult(category, allA(), characters)
-      expect(result.pattern).toMatch(/^[HML](-[HML]){4}$/)
-      expect(result.main.easterKey).toBeUndefined()
-      expect(result.relative).not.toBeNull()
-    }
+  it.each(Object.values(BANKS))('$name 全选 A 可算出合法结果', (bank) => {
+    const result = computeResult(bank, allA(), characters)
+    expect(result.pattern).toMatch(/^[HML](-[HML]){4}$/)
+    expect(result.main.gender).toBe(bank.pool)
+    expect(result.relative?.gender).toBe(bank.pool)
   })
 
   it('答案不足 15 抛 IncompleteAnswersError', () => {
-    expect(() => computeResult(CATEGORIES.xiuxian, allA().slice(0, 14), characters)).toThrow(
+    expect(() => computeResult(BANKS.male, allA().slice(0, 14), characters)).toThrow(
       IncompleteAnswersError
     )
   })
@@ -151,13 +130,11 @@ describe('真实题库跑通', () => {
     expect(patternFromBands(['H', 'M', 'M', 'L', 'H'])).toBe('H-M-M-L-H')
     expect(CHARACTER_ANCHOR).toEqual({ L: 2, M: 5, H: 9 })
   })
-})
 
-describe('random answer keys never crash', () => {
-  it('所有 6 个字母都在真实题中出现', () => {
-    for (const category of Object.values(CATEGORIES)) {
-      for (const question of category.questions) {
-        const keys = question.options.map((o) => o.key)
+  it('每卷每题都包含 A-D', () => {
+    for (const bank of Object.values(BANKS)) {
+      for (const question of bank.questions) {
+        const keys = question.options.map((option) => option.key)
         for (const key of ANSWER_KEYS) expect(keys).toContain(key)
       }
     }
