@@ -1,21 +1,26 @@
 /**
- * 答题状态机（规范：specs/50-pages/quiz.md §1，v4.0）
- * q1Choice → Category → 15 道计分题答案数组
+ * v5 答题状态机：Q0 性别分流 → 对应卷 15 题。
  */
 import { defineStore } from 'pinia'
-import { CATEGORIES, characters, getCategoryByQ1Option } from '../data'
+import { BANKS, characters, getBankByQ0Option } from '../data'
 import { computeResult } from '../core/engine'
 import { matchByLut, matchRelative } from '../core/matcher'
-import type { CategoryMeta, OptionKey, ScoringAnswers, TestResult } from '../types'
+import {
+  QUESTION_COUNT,
+  type OptionKey,
+  type QuestionBank,
+  type ScoringAnswers,
+  type TestResult
+} from '../types'
 
-const PROGRESS_KEY = 'cbti:progress'
+const PROGRESS_KEY = 'cbti:v5:progress'
 
 type QuizStatus = 'idle' | 'answering' | 'finished'
 
 interface QuizState {
   status: QuizStatus
-  q1Choice: OptionKey | null
-  category: CategoryMeta | null
+  q0Choice: OptionKey | null
+  bank: QuestionBank | null
   answers: ScoringAnswers
   result: TestResult | null
   switchedPool: boolean
@@ -24,7 +29,7 @@ interface QuizState {
 function persist(state: QuizState): void {
   try {
     uni.setStorageSync(PROGRESS_KEY, {
-      q1Choice: state.q1Choice,
+      q0Choice: state.q0Choice,
       answers: state.answers
     })
   } catch (error) {
@@ -33,14 +38,18 @@ function persist(state: QuizState): void {
 }
 
 function isOptionKey(value: unknown): value is OptionKey {
-  return typeof value === 'string' && ['A', 'B', 'C', 'D', 'E', 'F'].includes(value)
+  return typeof value === 'string' && ['A', 'B', 'C', 'D'].includes(value)
+}
+
+function isQ0Option(value: unknown): value is 'A' | 'B' {
+  return value === 'A' || value === 'B'
 }
 
 export const useQuizStore = defineStore('quiz', {
   state: (): QuizState => ({
     status: 'idle',
-    q1Choice: null,
-    category: null,
+    q0Choice: null,
+    bank: null,
     answers: [],
     result: null,
     switchedPool: false
@@ -48,23 +57,21 @@ export const useQuizStore = defineStore('quiz', {
 
   getters: {
     questions(state) {
-      return state.category?.questions ?? []
+      return state.bank?.questions ?? []
     },
     currentIndex(state): number {
-      if (!state.q1Choice) return 0
-      return state.answers.length >= 15 ? 14 : state.answers.length
+      if (!state.q0Choice) return 0
+      return state.answers.length >= QUESTION_COUNT ? QUESTION_COUNT - 1 : state.answers.length
     },
     isComplete(state): boolean {
-      return state.q1Choice !== null && state.answers.length >= 15
+      return state.q0Choice !== null && state.answers.length >= QUESTION_COUNT
     }
   },
 
   actions: {
-    /** 第 1 屏选题材：路由到对应类别并清空旧答案 */
-    chooseQ1(key: OptionKey): void {
-      const category = CATEGORIES[getCategoryByQ1Option(key).id]
-      this.q1Choice = key
-      this.category = category
+    chooseQ0(key: 'A' | 'B'): void {
+      this.q0Choice = key
+      this.bank = getBankByQ0Option(key)
       this.answers = []
       this.result = null
       this.switchedPool = false
@@ -72,9 +79,9 @@ export const useQuizStore = defineStore('quiz', {
       persist(this)
     },
 
-    resetQ1(): void {
-      this.q1Choice = null
-      this.category = null
+    resetQ0(): void {
+      this.q0Choice = null
+      this.bank = null
       this.answers = []
       this.result = null
       this.switchedPool = false
@@ -82,39 +89,34 @@ export const useQuizStore = defineStore('quiz', {
       persist(this)
     },
 
-    /** 记录/覆盖某题答案（index 0-based；回改截断后续答案） */
     answerAt(index: number, optionKey: OptionKey): void {
-      if (!this.q1Choice || !this.category) return
-      const question = this.category.questions[index]
-      if (!question || !question.options.some((o) => o.key === optionKey)) return
+      if (!this.q0Choice || !this.bank) return
+      const question = this.bank.questions[index]
+      if (!question || !question.options.some((option) => option.key === optionKey)) return
       if (index < this.answers.length && this.answers[index] === optionKey) return
 
       this.answers = [...this.answers.slice(0, index), optionKey]
       persist(this)
-      if (this.isComplete) {
-        this.status = 'finished'
-      }
+      if (this.isComplete) this.status = 'finished'
     },
 
     start(): void {
-      if (!this.q1Choice) {
+      if (!this.q0Choice) {
         this.status = 'idle'
         return
       }
       this.status = this.isComplete ? 'finished' : 'answering'
     },
 
-    /** 计算结果（答满后调用） */
     finalize(): TestResult {
-      if (!this.category || !this.isComplete) {
-        throw new Error('[CBTI] finalize 前必须完成 Q1 并答满 15 题')
+      if (!this.bank || !this.isComplete) {
+        throw new Error('[CBTI] finalize 前必须完成 Q0 并答满 15 题')
       }
-      this.result = computeResult(this.category, this.answers, characters)
+      this.result = computeResult(this.bank, this.answers, characters)
       this.status = 'finished'
       return this.result
     },
 
-    /** 切换对照池：保留模式串/维度分，仅对另一池重跑 LUT 主结果与灵魂近亲 */
     switchPool(): TestResult | null {
       if (!this.result || this.result.easterLocked) return null
       const opposite = this.result.pool === 'male' ? 'female' : 'male'
@@ -132,8 +134,8 @@ export const useQuizStore = defineStore('quiz', {
 
     reset(): void {
       this.status = 'idle'
-      this.q1Choice = null
-      this.category = null
+      this.q0Choice = null
+      this.bank = null
       this.answers = []
       this.result = null
       this.switchedPool = false
@@ -147,14 +149,14 @@ export const useQuizStore = defineStore('quiz', {
     restore(): void {
       try {
         const saved = uni.getStorageSync(PROGRESS_KEY) as
-          { q1Choice?: unknown; answers?: unknown[] } | ''
-        if (!saved || !isOptionKey(saved.q1Choice) || !Array.isArray(saved.answers)) return
+          { q0Choice?: unknown; answers?: unknown[] } | ''
+        if (!saved || !isQ0Option(saved.q0Choice) || !Array.isArray(saved.answers)) return
         const answers = saved.answers.filter(isOptionKey)
         if (answers.length === 0) return
-        this.q1Choice = saved.q1Choice
-        this.category = CATEGORIES[getCategoryByQ1Option(saved.q1Choice).id]
+        this.q0Choice = saved.q0Choice
+        this.bank = BANKS[getBankByQ0Option(saved.q0Choice).id]
         this.answers = answers
-        this.status = answers.length >= 15 ? 'finished' : 'answering'
+        this.status = answers.length >= QUESTION_COUNT ? 'finished' : 'answering'
       } catch (error) {
         console.error('[CBTI] 恢复进度失败', error)
       }
