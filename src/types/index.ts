@@ -1,16 +1,17 @@
 /**
- * 领域类型定义（契约见 specs/20-data-schema.md §1，保持逐字一致）
+ * 领域类型定义
+ *
+ * v5 以性别双卷替代 v4 的题材分流与双维计分；规格尚未回写时以
+ * CBTI_test_questions_categorized_v5.md 与 tasks/codex-prompts-v5.md 为准。
  */
 
 export type Dimension = 'presence' | 'cognition' | 'emotion' | 'order' | 'endurance'
 export type FinalBand = 'L' | 'M' | 'H'
 export type RolePool = 'male' | 'female'
-export type Category = 'xiuxian' | 'jianghu' | 'rexue' | 'mori' | 'gongting' | 'dushi'
-export type SeedTag = 'nezha' | 'wukong' | 'jingwei' | 'nuwa'
-export type OptionKey = 'A' | 'B' | 'C' | 'D' | 'E' | 'F'
-export type QuestionType = 'theme-split' | 'normal' | 'easter'
-export type ScoreValue = 1 | 2 | 5 | 9 | 10
-export type DimensionPair = [Dimension, Dimension]
+export type SeedTag = 'nezha' | 'wukong'
+export type OptionKey = 'A' | 'B' | 'C' | 'D'
+export type QuestionType = 'gender-split' | 'normal'
+export type ScoreValue = 0 | 3 | 7 | 9
 
 /** 维度固定顺序：模式串、数组、雷达图一律按此顺序（specs/00 §2） */
 export const DIMENSIONS: readonly Dimension[] = [
@@ -29,73 +30,48 @@ export const DIMENSION_LABELS: Record<Dimension, { name: string; alias: string }
   endurance: { name: '持久力', alias: '坚韧值' }
 }
 
-/** 题材 → 角色池映射（specs/20 §1） */
-export const CATEGORY_POOL: Record<Category, RolePool> = {
-  xiuxian: 'male',
-  jianghu: 'male',
-  rexue: 'male',
-  mori: 'female',
-  gongting: 'female',
-  dushi: 'female'
-}
-
 export const QUESTION_COUNT = 15
-export const OPTIONS_PER_QUESTION = 6
+export const OPTIONS_PER_QUESTION = 4
 
 export interface QuestionOption {
   key: OptionKey
   text: string
-  /** 计分题必填：恰好 pair 两个维度；X ∈ {1,5,10}，Y ∈ {2,9} */
-  scores?: Partial<Record<Dimension, ScoreValue>>
-  /** 仅 easter 题的 seed option 可携带 */
+  /** 计分题必填；0/3/7/9 四档 */
+  score?: ScoreValue
+  /** 彩蛋种子选项 */
   seedTag?: SeedTag
-  /** 仅 theme-split 题选项可携带 */
-  targetCategory?: Category
+  /** 仅 Q0 性别分流选项可携带 */
+  targetPool?: RolePool
 }
 
-/** 类别计分题：每个题材类别独立一份，id 1–15 */
+/** 性别卷计分题，id 1–15 */
 export interface Question {
   id: number
-  type: 'normal' | 'easter'
-  pair: DimensionPair
+  dimension: Dimension
   scene: string
   stem: string
-  options: [
-    QuestionOption,
-    QuestionOption,
-    QuestionOption,
-    QuestionOption,
-    QuestionOption,
-    QuestionOption
-  ]
+  options: [QuestionOption, QuestionOption, QuestionOption, QuestionOption]
   designNote?: string
 }
 
-/** 题材分流题：第一屏，数据 id=0，纯分流不计分 */
-export interface ThemeSplitQuestion {
+/** 性别分流题：第一屏，数据 id=0，纯分流不计分 */
+export interface GenderSplitQuestion {
   id: 0
-  type: 'theme-split'
+  type: 'gender-split'
   scene: string
   stem: string
-  options: [
-    QuestionOption,
-    QuestionOption,
-    QuestionOption,
-    QuestionOption,
-    QuestionOption,
-    QuestionOption
-  ]
+  options: [QuestionOption, QuestionOption]
   designNote?: string
 }
 
-export interface CategoryMeta {
-  id: Category
+export interface QuestionBank {
+  id: RolePool
   name: string
   pool: RolePool
   questions: Question[]
 }
 
-/** 计分题答案：按类别题 id 1–15 的固定顺序存放，长度 15 */
+/** 计分题答案：按题号 1–15 顺序存放，长度 15 */
 export type ScoringAnswers = OptionKey[]
 
 export interface Character {

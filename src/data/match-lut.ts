@@ -1,30 +1,32 @@
 /**
- * 本文件由 scripts/build-match-table.py 生成，禁止手改。
+ * v5 分维阈值与均衡 LUT 数据，禁止手改。
+ *
+ * 重建时必须保持两池各 243 格，并排除带 easterKey 的隐藏角色。
  */
 import type { RolePool } from '../types'
 
 export const DIMENSION_THRESHOLDS = {
-  presence: { lowMax: 28, highMin: 36 },
-  cognition: { lowMax: 28, highMin: 37 },
-  emotion: { lowMax: 29, highMin: 36 },
-  order: { lowMax: 28, highMin: 37 },
-  endurance: { lowMax: 26, highMin: 40 }
+  presence: { lowMax: 9, highMin: 19 },
+  cognition: { lowMax: 9, highMin: 19 },
+  emotion: { lowMax: 9, highMin: 19 },
+  order: { lowMax: 9, highMin: 19 },
+  endurance: { lowMax: 9, highMin: 19 }
 } as const
 
 export const DIM_TOTAL_MIN = {
-  presence: 6,
-  cognition: 8,
-  emotion: 9,
-  order: 10,
-  endurance: 12
+  presence: 0,
+  cognition: 0,
+  emotion: 0,
+  order: 0,
+  endurance: 0
 } as const
 
 export const DIM_TOTAL_MAX = {
-  presence: 60,
-  cognition: 58,
-  emotion: 57,
-  order: 56,
-  endurance: 54
+  presence: 27,
+  cognition: 27,
+  emotion: 27,
+  order: 27,
+  endurance: 27
 } as const
 
 export const MATCH_LUT: Record<RolePool, Record<string, string>> = {

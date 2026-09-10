@@ -1,37 +1,39 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { CATEGORIES, characters } from '../../data'
+import { BANKS, characters } from '../../data'
+import { DIMENSIONS, type Dimension, type ScoringAnswers } from '../../types'
 import { computeResult } from '../engine'
-import type { ScoringAnswers } from '../../types'
 
-interface V4Fixture {
-  category: string
-  answers: string[]
-  expectedPattern: string
-  expectedMainId: string
-  expectedEaster: string | null
-  expectedDimensionTotals: Record<string, number>
-  expectedDimensionScores: Record<string, number>
+function seededRandom(seed: number): () => number {
+  let state = seed
+  return () => {
+    state = (state * 1664525 + 1013904223) >>> 0
+    return state / 0x100000000
+  }
 }
 
-function loadFixtures(): V4Fixture[] {
-  const path = resolve(process.cwd(), 'tests/fixtures/v4-cases.json')
-  return JSON.parse(readFileSync(path, 'utf-8')) as V4Fixture[]
-}
+describe('v5 随机路径对拍（1000 条）', () => {
+  it('计分、模式串与真实题库选项一致', () => {
+    const random = seededRandom(20260910)
 
-describe('v4.0 fixtures 对拍（1000 条）', () => {
-  const fixtures = loadFixtures()
-  expect(fixtures).toHaveLength(1000)
+    for (let path = 0; path < 1000; path += 1) {
+      const bank = path % 2 === 0 ? BANKS.male : BANKS.female
+      const answers: ScoringAnswers = bank.questions.map((question) => {
+        const option = question.options[Math.floor(random() * question.options.length)]
+        return option.key
+      })
+      const totals = Object.fromEntries(DIMENSIONS.map((dimension) => [dimension, 0])) as Record<
+        Dimension,
+        number
+      >
+      bank.questions.forEach((question, index) => {
+        const option = question.options.find((candidate) => candidate.key === answers[index])
+        totals[question.dimension] += option?.score ?? 0
+      })
 
-  it.each(fixtures)('$category $answers 与生成器一致', (fixture) => {
-    const category = CATEGORIES[fixture.category as keyof typeof CATEGORIES]
-    const result = computeResult(category, fixture.answers as ScoringAnswers, characters)
-
-    expect(result.pattern).toBe(fixture.expectedPattern)
-    expect(result.dimensionTotals).toEqual(fixture.expectedDimensionTotals)
-    expect(result.dimensionScores).toEqual(fixture.expectedDimensionScores)
-    expect(result.main.id).toBe(fixture.expectedMainId)
-    expect(result.easterLocked ? fixture.expectedEaster : null).toBe(fixture.expectedEaster)
+      const result = computeResult(bank, answers, characters)
+      expect(result.dimensionTotals).toEqual(totals)
+      expect(result.main.gender).toBe(bank.pool)
+      expect(result.pattern).toMatch(/^[HML](-[HML]){4}$/)
+    }
   })
 })

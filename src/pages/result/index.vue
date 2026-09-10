@@ -189,12 +189,12 @@ const headCropStyle = {
 const result = computed(() => quiz.result)
 
 const RESULT_STICKER_SPOTS = [
-  { left: '0px', top: '80px', rotate: '-10deg', delay: '0s', size: '96rpx', opacity: 0.6 },
-  { left: '86%', top: '70px', rotate: '10deg', delay: '0.5s', size: '96rpx', opacity: 0.55 },
-  { left: '0px', top: '230px', rotate: '8deg', delay: '1s', size: '96rpx', opacity: 0.6 },
-  { left: '86%', top: '220px', rotate: '-8deg', delay: '1.4s', size: '96rpx', opacity: 0.55 },
-  { left: '0px', top: '370px', rotate: '10deg', delay: '0.3s', size: '96rpx', opacity: 0.5 },
-  { left: '86%', top: '360px', rotate: '-10deg', delay: '1.8s', size: '96rpx', opacity: 0.5 }
+  { left: '0px', top: '80px', rotate: '-10deg', delay: '0s', size: '48rpx', opacity: 0.6 },
+  { left: '86%', top: '70px', rotate: '10deg', delay: '0.5s', size: '48rpx', opacity: 0.55 },
+  { left: '0px', top: '230px', rotate: '8deg', delay: '1s', size: '48rpx', opacity: 0.6 },
+  { left: '86%', top: '220px', rotate: '-8deg', delay: '1.4s', size: '48rpx', opacity: 0.55 },
+  { left: '0px', top: '370px', rotate: '10deg', delay: '0.3s', size: '48rpx', opacity: 0.5 },
+  { left: '86%', top: '360px', rotate: '-10deg', delay: '1.8s', size: '48rpx', opacity: 0.5 }
 ]
 
 const resultTheme = computed(() =>

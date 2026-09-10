@@ -1,36 +1,35 @@
 /**
- * 彩蛋锁定规则（规范：specs/30-scoring-algorithm.md §5）
- * 纯函数，禁止引入 vue / uni API。
+ * v5 累计种子彩蛋：同一池内同一种子命中 >=3 次时锁定。
  */
 import type { OptionKey, Question, RolePool, SeedTag } from '../types'
 
 const POOL_TAGS: Record<RolePool, readonly SeedTag[]> = {
-  male: ['nezha', 'wukong'],
-  female: ['jingwei', 'nuwa']
+  male: ['wukong'],
+  female: ['nezha']
 }
 
-function findSeedTag(question: Question, answerKey: OptionKey): SeedTag | null {
-  const option = question.options.find((o) => o.key === answerKey)
-  return option?.seedTag ?? null
-}
+export const EASTER_SEED_THRESHOLD = 3
 
-/** Q7/Q11 双题同种子且属于当前池 → 锁定；否则返回 null */
+/** 全卷同池同种子累计达到阈值 → 锁定；否则返回 null */
 export function resolveEasterLock(
   questions: Question[],
   answers: OptionKey[],
   pool: RolePool
 ): SeedTag | null {
-  const q7 = questions.find((q) => q.id === 7)
-  const q11 = questions.find((q) => q.id === 11)
-  if (!q7 || !q11) return null
-  const key7 = answers[6]
-  const key11 = answers[10]
-  if (!key7 || !key11) return null
+  const counts = new Map<SeedTag, number>()
+  for (const tag of POOL_TAGS[pool]) counts.set(tag, 0)
 
-  const tag7 = findSeedTag(q7, key7)
-  const tag11 = findSeedTag(q11, key11)
-  if (!tag7 || tag7 !== tag11) return null
-  return POOL_TAGS[pool].includes(tag7) ? tag7 : null
+  questions.forEach((question, index) => {
+    const answerKey = answers[index]
+    if (!answerKey) return
+    const seedTag = question.options.find((option) => option.key === answerKey)?.seedTag
+    if (seedTag && counts.has(seedTag)) {
+      counts.set(seedTag, (counts.get(seedTag) ?? 0) + 1)
+    }
+  })
+
+  const winner = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]
+  return winner && winner[1] >= EASTER_SEED_THRESHOLD ? winner[0] : null
 }
 
 export function poolTags(pool: RolePool): readonly SeedTag[] {

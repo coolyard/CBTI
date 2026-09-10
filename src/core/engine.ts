@@ -3,11 +3,11 @@
  * 纯函数，禁止引入 vue / uni API。
  */
 import type {
-  CategoryMeta,
   Character,
   Dimension,
   FinalBand,
   OptionKey,
+  QuestionBank,
   ScoringAnswers,
   TestResult
 } from '../types'
@@ -29,21 +29,21 @@ export class IncompleteAnswersError extends Error {
   }
 }
 
-function findOption(questionIndex: number, category: CategoryMeta, answerKey: OptionKey) {
-  const question = category.questions[questionIndex]
+function findOption(questionIndex: number, bank: QuestionBank, answerKey: OptionKey) {
+  const question = bank.questions[questionIndex]
   const option = question.options.find((o) => o.key === answerKey)
   if (!option) {
-    throw new DataIntegrityError(`${category.name} 题 ${question.id} 不存在选项 ${answerKey}`)
+    throw new DataIntegrityError(`${bank.name} 题 ${question.id} 不存在选项 ${answerKey}`)
   }
   return { question, option }
 }
 
 /**
- * 主入口：类别 + 15 个计分答案 → TestResult
+ * 主入口：性别卷 + 15 个计分答案 → TestResult
  * 彩蛋锁定时不影响维度分/模式串/灵魂近亲的正常计算（specs/30 §5）
  */
 export function computeResult(
-  category: CategoryMeta,
+  bank: QuestionBank,
   answers: ScoringAnswers,
   characters: Character[]
 ): TestResult {
@@ -54,9 +54,9 @@ export function computeResult(
   const dimensionTotals = {} as Record<Dimension, number>
   for (const dimension of DIMENSIONS) {
     let total = 0
-    for (let index = 0; index < category.questions.length; index += 1) {
-      const { option } = findOption(index, category, answers[index])
-      total += option.scores?.[dimension] ?? 0
+    for (let index = 0; index < bank.questions.length; index += 1) {
+      const { question, option } = findOption(index, bank, answers[index])
+      if (question.dimension === dimension) total += option.score ?? 0
     }
     dimensionTotals[dimension] = total
   }
@@ -69,11 +69,11 @@ export function computeResult(
   }
 
   const pattern = patternFromBands(DIMENSIONS.map((d) => bands[d]))
-  const pool = category.pool
+  const pool = bank.pool
   const main = matchByLut(pattern, pool, characters)
   const relative = matchRelative(pattern, pool, characters, main.id)
 
-  const easterTag = resolveEasterLock(category.questions, answers, pool)
+  const easterTag = resolveEasterLock(bank.questions, answers, pool)
   let lockedMain = main
   if (easterTag) {
     const locked = characters.find((c) => c.easterKey === easterTag && c.gender === pool)

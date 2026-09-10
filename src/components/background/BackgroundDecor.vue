@@ -56,12 +56,12 @@ const props = withDefaults(
 const failedDecor = ref<Record<string, boolean>>({})
 
 const DEFAULT_STICKER_SPOTS: DecorSpot[] = [
-  { left: '3%', top: '6%', rotate: '-12deg', delay: '0s', size: '96rpx', opacity: 0.6 },
-  { left: '85%', top: '4%', rotate: '10deg', delay: '0.5s', size: '108rpx', opacity: 0.55 },
-  { left: '4%', top: '52%', rotate: '8deg', delay: '1s', size: '120rpx', opacity: 0.6 },
-  { left: '84%', top: '48%', rotate: '-9deg', delay: '1.4s', size: '132rpx', opacity: 0.55 },
-  { left: '6%', top: '88%', rotate: '14deg', delay: '0.3s', size: '144rpx', opacity: 0.5 },
-  { left: '78%', top: '84%', rotate: '-11deg', delay: '1.8s', size: '108rpx', opacity: 0.5 }
+  { left: '3%', top: '6%', rotate: '-12deg', delay: '0s', size: '48rpx', opacity: 0.6 },
+  { left: '85%', top: '4%', rotate: '10deg', delay: '0.5s', size: '54rpx', opacity: 0.55 },
+  { left: '4%', top: '52%', rotate: '8deg', delay: '1s', size: '60rpx', opacity: 0.6 },
+  { left: '84%', top: '48%', rotate: '-9deg', delay: '1.4s', size: '66rpx', opacity: 0.55 },
+  { left: '6%', top: '88%', rotate: '14deg', delay: '0.3s', size: '72rpx', opacity: 0.5 },
+  { left: '78%', top: '84%', rotate: '-11deg', delay: '1.8s', size: '54rpx', opacity: 0.5 }
 ]
 
 const stickers = computed(() => {

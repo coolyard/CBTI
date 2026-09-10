@@ -1,65 +1,49 @@
 /**
- * Zod 数据契约（与 specs/20-data-schema.md §2 逐字对应）
+ * v5 数据契约（与 tasks/codex-prompts-v5.md 同步）。
  */
 import { z } from 'zod/v3'
 
 export const PATTERN_REGEX = /^[HML](-[HML]){4}$/
 
-export const PAIR_SKELETON = [
-  ['presence', 'endurance'],
-  ['cognition', 'order'],
-  ['emotion', 'endurance'],
-  ['presence', 'cognition'],
-  ['emotion', 'order'],
-  ['cognition', 'endurance'],
-  ['presence', 'order'],
-  ['cognition', 'emotion'],
-  ['order', 'endurance'],
-  ['presence', 'emotion'],
-  ['presence', 'endurance'],
-  ['presence', 'cognition'],
-  ['cognition', 'emotion'],
-  ['emotion', 'order'],
-  ['order', 'endurance']
+export const DIMENSION_BY_QUESTION_INDEX = [
+  'presence',
+  'presence',
+  'presence',
+  'cognition',
+  'cognition',
+  'cognition',
+  'emotion',
+  'emotion',
+  'emotion',
+  'order',
+  'order',
+  'order',
+  'endurance',
+  'endurance',
+  'endurance'
 ] as const
 
-const optionKeySchema = z.enum(['A', 'B', 'C', 'D', 'E', 'F'])
+const optionKeySchema = z.enum(['A', 'B', 'C', 'D'])
 const dimensionSchema = z.enum(['presence', 'cognition', 'emotion', 'order', 'endurance'])
-const seedTagSchema = z.enum(['nezha', 'wukong', 'jingwei', 'nuwa'])
-const categorySchema = z.enum(['xiuxian', 'jianghu', 'rexue', 'mori', 'gongting', 'dushi'])
-const scoreValueSchema = z.union([
-  z.literal(1),
-  z.literal(2),
-  z.literal(5),
-  z.literal(9),
-  z.literal(10)
-])
-const scoresSchema = z.object({
-  presence: scoreValueSchema.optional(),
-  cognition: scoreValueSchema.optional(),
-  emotion: scoreValueSchema.optional(),
-  order: scoreValueSchema.optional(),
-  endurance: scoreValueSchema.optional()
-})
+const rolePoolSchema = z.enum(['male', 'female'])
+const seedTagSchema = z.enum(['nezha', 'wukong'])
+const scoreValueSchema = z.union([z.literal(0), z.literal(3), z.literal(7), z.literal(9)])
 
 export const questionOptionSchema = z.object({
   key: optionKeySchema,
-  text: z.string().min(1).max(40, '选项文案不得超过 40 字'),
-  scores: scoresSchema.optional(),
+  text: z.string().min(1).max(200, '选项文案不得超过 200 字'),
+  score: scoreValueSchema.optional(),
   seedTag: seedTagSchema.optional(),
-  targetCategory: categorySchema.optional()
+  targetPool: rolePoolSchema.optional()
 })
 
 export const questionSchema = z
   .object({
     id: z.number().int().min(1).max(15),
-    type: z.enum(['normal', 'easter']),
-    pair: z.tuple([dimensionSchema, dimensionSchema]),
+    dimension: dimensionSchema,
     scene: z.string().min(1),
-    stem: z.string().max(50, '题干不得超过 50 字').startsWith('你', '题干必须以「你」开头'),
+    stem: z.string().min(1).max(240, '题干不得超过 240 字'),
     options: z.tuple([
-      questionOptionSchema,
-      questionOptionSchema,
       questionOptionSchema,
       questionOptionSchema,
       questionOptionSchema,
@@ -67,126 +51,107 @@ export const questionSchema = z
     ]),
     designNote: z.string().optional()
   })
-  .superRefine((q, ctx) => {
-    const [xDim, yDim] = q.pair
-    if (xDim === yDim) {
-      ctx.addIssue({ code: 'custom', message: `题 ${q.id} 维度对不能相同` })
-    }
-
-    const keys = q.options.map((o) => o.key)
-    for (const k of ['A', 'B', 'C', 'D', 'E', 'F'] as const) {
-      if (!keys.includes(k)) {
-        ctx.addIssue({ code: 'custom', message: `题 ${q.id} 缺少选项 ${k}` })
+  .superRefine((question, ctx) => {
+    const keys = question.options.map((option) => option.key)
+    for (const key of ['A', 'B', 'C', 'D'] as const) {
+      if (!keys.includes(key)) {
+        ctx.addIssue({ code: 'custom', message: `题 ${question.id} 缺少选项 ${key}` })
       }
     }
 
-    const seenGrid = new Set<string>()
-    for (const o of q.options) {
-      const scores = o.scores
-      if (!scores) {
-        ctx.addIssue({ code: 'custom', message: `题 ${q.id} 选项 ${o.key} 缺少 scores` })
-        continue
-      }
-      const scoreKeys = Object.keys(scores) as Array<keyof typeof scores>
-      const expected = new Set([xDim, yDim])
-      if (scoreKeys.length !== 2 || scoreKeys.some((dim) => !expected.has(dim))) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `题 ${q.id} 选项 ${o.key} scores 维度必须恰好为 ${xDim}/${yDim}`
-        })
-      }
-      const x = scores[xDim]
-      const y = scores[yDim]
-      if (x === undefined || ![1, 5, 10].includes(x)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `题 ${q.id} 选项 ${o.key} 的 ${xDim} 必须 ∈ {1,5,10}`
-        })
-      }
-      if (y === undefined || ![2, 9].includes(y)) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `题 ${q.id} 选项 ${o.key} 的 ${yDim} 必须 ∈ {2,9}`
-        })
-      }
-      if (x !== undefined && y !== undefined) {
-        seenGrid.add(`${x}:${y}`)
-      }
-      if (o.targetCategory) {
-        ctx.addIssue({ code: 'custom', message: `计分题 ${q.id} 不允许 targetCategory` })
-      }
-    }
-    for (const pair of ['1:2', '1:9', '5:2', '5:9', '10:2', '10:9'] as const) {
-      if (!seenGrid.has(pair)) {
-        ctx.addIssue({ code: 'custom', message: `题 ${q.id} 网格缺少 ${pair}` })
+    const scores = question.options.map((option) => option.score)
+    for (const score of [0, 3, 7, 9] as const) {
+      if (!scores.includes(score)) {
+        ctx.addIssue({ code: 'custom', message: `题 ${question.id} 缺少分值 ${score}` })
       }
     }
 
-    if (q.type === 'normal' && q.options.some((o) => o.seedTag)) {
-      ctx.addIssue({ code: 'custom', message: `常规题 ${q.id} 不允许 seedTag` })
-    }
-    if (q.type === 'easter' && q.options.every((o) => !o.seedTag)) {
-      ctx.addIssue({ code: 'custom', message: `彩蛋题 ${q.id} 缺少种子选项` })
-    }
-    if (q.id === 7 || q.id === 11) {
-      if (q.type !== 'easter') {
-        ctx.addIssue({ code: 'custom', message: `题 ${q.id} 必须为 easter` })
+    for (const option of question.options) {
+      if (option.score === undefined) {
+        ctx.addIssue({ code: 'custom', message: `题 ${question.id} 选项 ${option.key} 缺少 score` })
       }
-    } else if (q.type === 'easter') {
-      ctx.addIssue({ code: 'custom', message: `easter 题只允许出现在题 7/11，实际 ${q.id}` })
+      if (option.targetPool) {
+        ctx.addIssue({ code: 'custom', message: `计分题 ${question.id} 不允许 targetPool` })
+      }
     }
   })
 
-export const categoryQuestionBankSchema = z
-  .array(questionSchema)
-  .length(15, '每个类别题库必须恰好 15 题')
-  .superRefine((qs, ctx) => {
-    qs.forEach((q, index) => {
-      if (q.id !== index + 1) {
-        ctx.addIssue({ code: 'custom', message: `题号不连续：期望 ${index + 1}，实际 ${q.id}` })
-      }
-      const expected = PAIR_SKELETON[index]
-      if (q.pair[0] !== expected[0] || q.pair[1] !== expected[1]) {
+export const questionBankSchema = z
+  .object({
+    id: rolePoolSchema,
+    name: z.string().min(1),
+    pool: rolePoolSchema,
+    questions: z.array(questionSchema).length(15, '每一卷必须恰好 15 题')
+  })
+  .superRefine((bank, ctx) => {
+    if (bank.id !== bank.pool) {
+      ctx.addIssue({ code: 'custom', message: `${bank.name} 的 id 与 pool 不一致` })
+    }
+
+    bank.questions.forEach((question, index) => {
+      if (question.id !== index + 1) {
         ctx.addIssue({
           code: 'custom',
-          message: `题 ${q.id} pair 与骨架不一致：期望 ${expected.join('-')}，实际 ${q.pair.join('-')}`
+          message: `题号不连续：期望 ${index + 1}，实际 ${question.id}`
+        })
+      }
+      const expectedDimension = DIMENSION_BY_QUESTION_INDEX[index]
+      if (question.dimension !== expectedDimension) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `题 ${question.id} 维度错误：期望 ${expectedDimension}，实际 ${question.dimension}`
         })
       }
     })
+
+    const expectedSeed = bank.pool === 'male' ? 'wukong' : 'nezha'
+    const seedCount = bank.questions.reduce(
+      (total, question) =>
+        total + question.options.filter((option) => option.seedTag === expectedSeed).length,
+      0
+    )
+    if (seedCount < 3) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `${bank.name} 至少需要 3 个 ${expectedSeed} 种子选项`
+      })
+    }
+    for (const question of bank.questions) {
+      for (const option of question.options) {
+        if (option.seedTag && option.seedTag !== expectedSeed) {
+          ctx.addIssue({
+            code: 'custom',
+            message: `题 ${question.id} 选项 ${option.key} 的种子不属于 ${bank.pool} 池`
+          })
+        }
+      }
+    }
   })
 
-export const themeSplitQuestionSchema = z
+export const genderSplitQuestionSchema = z
   .object({
     id: z.literal(0),
-    type: z.literal('theme-split'),
+    type: z.literal('gender-split'),
     scene: z.string().min(1),
-    stem: z.string().max(50).startsWith('你', '题干必须以「你」开头'),
-    options: z.tuple([
-      questionOptionSchema,
-      questionOptionSchema,
-      questionOptionSchema,
-      questionOptionSchema,
-      questionOptionSchema,
-      questionOptionSchema
-    ]),
+    stem: z.string().min(1).max(240).startsWith('你', '题干必须以「你」开头'),
+    options: z.tuple([questionOptionSchema, questionOptionSchema]),
     designNote: z.string().optional()
   })
-  .superRefine((q, ctx) => {
-    const keys = q.options.map((o) => o.key)
-    for (const k of ['A', 'B', 'C', 'D', 'E', 'F'] as const) {
-      if (!keys.includes(k)) {
-        ctx.addIssue({ code: 'custom', message: `theme-split 缺少选项 ${k}` })
-      }
+  .superRefine((question, ctx) => {
+    const keys = question.options.map((option) => option.key)
+    if (keys.join('') !== 'AB') {
+      ctx.addIssue({ code: 'custom', message: '性别分流题必须按 A/B 顺序提供两个选项' })
     }
-    const categories = new Set(q.options.map((o) => o.targetCategory))
-    for (const category of ['xiuxian', 'jianghu', 'rexue', 'mori', 'gongting', 'dushi'] as const) {
-      if (!categories.has(category)) {
-        ctx.addIssue({ code: 'custom', message: `theme-split 缺少目标题材 ${category}` })
-      }
+    const pools = new Set(question.options.map((option) => option.targetPool))
+    if (!pools.has('male') || !pools.has('female')) {
+      ctx.addIssue({ code: 'custom', message: '性别分流题必须同时覆盖 male/female' })
     }
-    for (const o of q.options) {
-      if (o.scores || o.seedTag || !o.targetCategory) {
-        ctx.addIssue({ code: 'custom', message: `theme-split 选项 ${o.key} 只允许 targetCategory` })
+    for (const option of question.options) {
+      if (option.score !== undefined || option.seedTag || !option.targetPool) {
+        ctx.addIssue({
+          code: 'custom',
+          message: `性别分流选项 ${option.key} 只允许 targetPool`
+        })
       }
     }
   })
@@ -194,10 +159,10 @@ export const themeSplitQuestionSchema = z
 export const characterSchema = z
   .object({
     id: z.string().regex(/^(\d{1,2})-(m|f)$/, 'id 必须形如 1-m / 1-f'),
-    archetypeId: z.number().int().min(1).max(30),
+    archetypeId: z.number().int().min(1).max(28),
     archetype: z.string().min(1),
     name: z.string().min(1),
-    gender: z.enum(['male', 'female']),
+    gender: rolePoolSchema,
     source: z.string(),
     pattern: z.string().regex(PATTERN_REGEX, '模式串格式非法'),
     easterKey: seedTagSchema.optional(),
@@ -208,84 +173,90 @@ export const characterSchema = z
     interpretation: z.array(z.string().max(120, '解读单段不得超过 120 字')),
     parallelUniverse: z.string().max(150, '平行宇宙不得超过 150 字')
   })
-  .superRefine((c, ctx) => {
-    const [archetypePart, genderPart] = c.id.split('-')
-    if (Number(archetypePart) !== c.archetypeId) {
-      ctx.addIssue({ code: 'custom', message: `id ${c.id} 与 archetypeId ${c.archetypeId} 不一致` })
+  .superRefine((character, ctx) => {
+    const [archetypePart, genderPart] = character.id.split('-')
+    if (Number(archetypePart) !== character.archetypeId) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `id ${character.id} 与 archetypeId ${character.archetypeId} 不一致`
+      })
     }
-    const expectedSuffix = c.gender === 'male' ? 'm' : 'f'
+    const expectedSuffix = character.gender === 'male' ? 'm' : 'f'
     if (genderPart !== expectedSuffix) {
-      ctx.addIssue({ code: 'custom', message: `id ${c.id} 后缀与 gender ${c.gender} 不一致` })
+      ctx.addIssue({
+        code: 'custom',
+        message: `id ${character.id} 后缀与 gender ${character.gender} 不一致`
+      })
     }
-    const allowedEaster: Record<string, string | undefined> = {
+
+    const allowedEaster: Record<number, string | undefined> = {
       27: 'nezha',
-      28: 'wukong',
-      29: 'jingwei',
-      30: 'nuwa'
+      28: 'wukong'
     }
-    if (c.easterKey) {
-      if (allowedEaster[String(c.archetypeId)] !== c.easterKey) {
-        ctx.addIssue({
-          code: 'custom',
-          message: `easterKey=${c.easterKey} 只允许出现在原型 #${c.archetypeId} 对应角色`
-        })
-      }
-    } else if (allowedEaster[String(c.archetypeId)]) {
-      ctx.addIssue({ code: 'custom', message: `隐藏角色 #${c.archetypeId} 缺少 easterKey` })
+    const expectedEaster = allowedEaster[character.archetypeId]
+    if (character.easterKey && character.easterKey !== expectedEaster) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `easterKey=${character.easterKey} 与原型 #${character.archetypeId} 不匹配`
+      })
+    }
+    if (!character.easterKey && expectedEaster) {
+      ctx.addIssue({ code: 'custom', message: `隐藏角色 #${character.archetypeId} 缺少 easterKey` })
     }
   })
 
 export const characterLibrarySchema = z
   .array(characterSchema)
-  .length(56, '角色库必须恰好 56 条（26 原型 × 男女 + 4 隐藏）')
-  .superRefine((chars, ctx) => {
+  .length(54, '角色库必须恰好 54 条（26 原型 × 男女 + 2 隐藏）')
+  .superRefine((characters, ctx) => {
     const ids = new Set<string>()
-    for (const c of chars) {
-      if (ids.has(c.id)) {
-        ctx.addIssue({ code: 'custom', message: `角色 id 重复：${c.id}` })
+    for (const character of characters) {
+      if (ids.has(character.id)) {
+        ctx.addIssue({ code: 'custom', message: `角色 id 重复：${character.id}` })
       }
-      ids.add(c.id)
+      ids.add(character.id)
     }
-    for (let a = 1; a <= 26; a++) {
-      const genders = chars.filter((c) => c.archetypeId === a).map((c) => c.gender)
+
+    for (let archetypeId = 1; archetypeId <= 26; archetypeId += 1) {
+      const genders = characters
+        .filter((character) => character.archetypeId === archetypeId)
+        .map((character) => character.gender)
       if (!genders.includes('male') || !genders.includes('female')) {
-        ctx.addIssue({ code: 'custom', message: `原型 #${a} 必须同时存在男女两版角色` })
+        ctx.addIssue({
+          code: 'custom',
+          message: `原型 #${archetypeId} 必须同时存在男女两版角色`
+        })
       }
     }
-    const maleHidden = chars.filter((c) => c.archetypeId === 27 || c.archetypeId === 28)
-    const femaleHidden = chars.filter((c) => c.archetypeId === 29 || c.archetypeId === 30)
+
+    const nezha = characters.find((character) => character.archetypeId === 27)
+    const wukong = characters.find((character) => character.archetypeId === 28)
+    if (!nezha || nezha.id !== '27-f' || nezha.gender !== 'female' || nezha.easterKey !== 'nezha') {
+      ctx.addIssue({ code: 'custom', message: '#27 必须是 female 魔童哪吒（27-f / nezha）' })
+    }
     if (
-      maleHidden.length !== 2 ||
-      maleHidden.some((c) => c.gender !== 'male') ||
-      femaleHidden.length !== 2 ||
-      femaleHidden.some((c) => c.gender !== 'female')
+      !wukong ||
+      wukong.id !== '28-m' ||
+      wukong.gender !== 'male' ||
+      wukong.easterKey !== 'wukong'
     ) {
-      ctx.addIssue({
-        code: 'custom',
-        message: '隐藏角色归池错误：#27/#28 必须 male，#29/#30 必须 female'
-      })
+      ctx.addIssue({ code: 'custom', message: '#28 必须是 male 黑神话悟空（28-m / wukong）' })
     }
   })
 
-export function assertCategoryCoverage(): void {
-  // 通过 src/data/category/index.ts 的启动校验保证 6 类齐全
-}
-
 export function assertContentComplete(characters: z.infer<typeof characterSchema>[]): void {
   const incomplete = characters.filter(
-    (c) =>
-      c.quote.length === 0 ||
-      c.quoteExtra.length === 0 ||
-      c.brief.length === 0 ||
-      c.tags.length < 3 ||
-      c.tags.length > 5 ||
-      c.interpretation.length < 3 ||
-      c.interpretation.length > 5 ||
-      c.parallelUniverse.length === 0
+    (character) =>
+      character.quote.length === 0 ||
+      character.quoteExtra.length === 0 ||
+      character.brief.length === 0 ||
+      character.tags.length < 3 ||
+      character.tags.length > 5 ||
+      character.interpretation.length < 3 ||
+      character.interpretation.length > 5 ||
+      character.parallelUniverse.length === 0
   )
   if (incomplete.length > 0) {
-    throw new Error(
-      `[CBTI] 内容不完整：${incomplete.map((c) => `${c.id} ${c.name}`).join('、')}（见 specs/60）`
-    )
+    throw new Error(`[CBTI] 内容不完整：${incomplete.map((c) => `${c.id} ${c.name}`).join('、')}`)
   }
 }
